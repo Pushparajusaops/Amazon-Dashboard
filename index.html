@@ -1,0 +1,2720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Amazon UAE Order Control Tower</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+
+:root{
+  /* Control-tower dark: deep navy canvas, not black */
+  --bg:#080B14; --bg2:#0D1220; --panel:#111829; --panel2:#18202F;
+  --line:rgba(148,170,205,.11); --line2:rgba(148,170,205,.20);
+  --ink:#EEF2FA; --ink2:#B9C4D8; --mute:#63708A; --mute2:#8592AC;
+  /* Active / in-progress = signal blue */
+  --accent:#4C93FF; --accent2:#7FB2FF; --accent-g:rgba(76,147,255,.13);
+  /* Amazon orange — strategic destination/brand + primary actions only */
+  --amz:#FF9900; --amz2:#FFB143; --amz-g:rgba(255,153,0,.13);
+  /* UAE green — destination indicator */
+  --uae:#12B76A; --uae-g:rgba(18,183,106,.14);
+  --ok:#2FD08A; --ok-g:rgba(47,208,138,.13);
+  --warn:#FBBF24; --warn-g:rgba(251,191,36,.13);
+  --bad:#FB6B6B; --bad-g:rgba(251,107,107,.13);
+  --neutral:#8B99B4; --neutral-g:rgba(139,153,180,.11);
+  --inv:#B292FF; --inv-g:rgba(178,146,255,.14);
+  --r:10px; --r2:14px; --r3:18px;
+  --sh:0 1px 2px rgba(0,0,0,.45),0 8px 30px rgba(0,0,0,.30);
+  --sh-drawer:-10px 0 54px rgba(0,0,0,.55);
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+  --disp:'Space Grotesk',sans-serif;
+  --body:'Inter',-apple-system,sans-serif;
+  --t:.16s cubic-bezier(.4,0,.2,1);
+}
+.light{
+  --bg:#EEF2F9; --bg2:#E4EAF4; --panel:#FFFFFF; --panel2:#F5F8FD;
+  --line:rgba(18,28,51,.09); --line2:rgba(18,28,51,.16);
+  --ink:#0C1424; --ink2:#33415A; --mute:#78859B; --mute2:#54607A;
+  --accent:#2E6FE0; --accent2:#2E6FE0; --accent-g:rgba(46,111,224,.11);
+  --amz:#E77600; --amz2:#E77600; --amz-g:rgba(231,118,0,.12);
+  --uae:#0A8F53; --uae-g:rgba(10,143,83,.12);
+  --ok:#0E9D5F; --ok-g:rgba(14,157,95,.12);
+  --warn:#B7791F; --warn-g:rgba(183,121,31,.14);
+  --bad:#DC3B3B; --bad-g:rgba(220,59,59,.11);
+  --neutral:#64748B; --neutral-g:rgba(100,116,139,.10);
+  --inv:#7C5CFA; --inv-g:rgba(124,92,250,.11);
+  --sh:0 1px 2px rgba(18,28,51,.06),0 8px 24px rgba(18,28,51,.08);
+  --sh-drawer:-10px 0 54px rgba(18,28,51,.18);
+}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth;}
+body{font-family:var(--body);background:var(--bg);color:var(--ink);line-height:1.5;min-height:100vh;letter-spacing:-.005em;
+  background-image:
+    radial-gradient(900px 460px at 6% -8%,var(--accent-g),transparent 62%),
+    radial-gradient(900px 480px at 96% -6%,var(--amz-g),transparent 60%),
+    radial-gradient(1100px 520px at 78% 108%,var(--uae-g),transparent 60%),
+    radial-gradient(circle at 1px 1px,var(--line) 1px,transparent 0);
+  background-size:auto,auto,auto,26px 26px;
+  background-attachment:fixed;}
+::selection{background:var(--amz);color:#241400;}
+mark{background:var(--warn);color:#3a2c00;border-radius:3px;padding:0 2px;font-weight:600;}
+.light mark{background:#FDE68A;color:#5a4500;}
+
+/* ── Header ── */
+.hdr{position:sticky;top:0;z-index:60;background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(16px) saturate(150%);-webkit-backdrop-filter:blur(16px) saturate(150%);border-bottom:1px solid var(--line);}
+.hdr-in{max-width:1480px;margin:0 auto;padding:14px 28px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;}
+.brand{display:flex;align-items:center;gap:13px;min-width:0;flex:none;}
+.glyph{width:42px;height:42px;border-radius:12px;flex:none;background:linear-gradient(140deg,var(--amz),#E77600);display:grid;place-items:center;box-shadow:0 4px 16px rgba(255,153,0,.38);position:relative;}
+.glyph::after{content:"";position:absolute;inset:0;border-radius:12px;border:1px solid rgba(255,255,255,.22);}
+.glyph svg{width:22px;height:22px;}
+.brand-txt h1{font-family:var(--disp);font-size:16.5px;font-weight:700;letter-spacing:-.02em;line-height:1.12;white-space:nowrap;}
+.brand-txt p{font-size:11.5px;color:var(--mute2);font-weight:500;margin-top:2px;}
+.brand-txt p .arw{color:var(--amz);font-weight:700;margin:0 1px;}
+.route-badges{display:flex;align-items:center;gap:5px;margin-left:6px;padding-left:14px;border-left:1px solid var(--line);}
+.flagchip{width:30px;height:30px;border-radius:99px;display:grid;place-items:center;font-size:16px;line-height:1;flex:none;border:1.5px solid var(--line2);background:var(--panel2);box-shadow:0 1px 4px rgba(0,0,0,.25);}
+.flagchip.dest{border-color:var(--uae);box-shadow:0 0 0 3px var(--uae-g);}
+.route-arrow{color:var(--mute2);font-weight:700;font-size:14px;margin:0 1px;}
+@media(max-width:1180px){.route-badges{display:none;}}
+
+/* Global search */
+.gsearch{position:relative;flex:1;min-width:200px;max-width:520px;}
+.gsearch>svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:17px;height:17px;color:var(--mute);pointer-events:none;}
+.gsearch input{width:100%;font-family:var(--body);font-size:13.5px;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:11px 14px 11px 40px;transition:var(--t);}
+.gsearch input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-g);}
+.gsearch input::placeholder{color:var(--mute);}
+.gsearch .kbd{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:11px;color:var(--mute);border:1px solid var(--line);border-radius:5px;padding:2px 6px;pointer-events:none;}
+
+.ac{position:absolute;top:calc(100% + 8px);left:0;right:0;background:var(--panel);border:1px solid var(--line2);border-radius:var(--r2);box-shadow:var(--sh);overflow:hidden;z-index:70;max-height:60vh;overflow-y:auto;display:none;}
+.ac.show{display:block;animation:acIn .15s ease;}
+@keyframes acIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.ac-sec{padding:8px 0;}
+.ac-sec+.ac-sec{border-top:1px solid var(--line);}
+.ac-head{font-size:10.5px;font-weight:650;color:var(--mute);text-transform:uppercase;letter-spacing:.07em;padding:6px 16px 4px;display:flex;justify-content:space-between;align-items:center;}
+.ac-head button{font-family:var(--body);font-size:10.5px;color:var(--mute2);background:none;border:none;cursor:pointer;text-transform:none;letter-spacing:0;}
+.ac-head button:hover{color:var(--accent2);}
+.ac-item{display:flex;align-items:center;gap:11px;padding:9px 16px;cursor:pointer;transition:background var(--t);}
+.ac-item:hover,.ac-item.sel{background:var(--panel2);}
+.ac-ic{width:30px;height:30px;border-radius:8px;background:var(--accent-g);color:var(--accent);display:grid;place-items:center;flex:none;}
+.ac-ic svg{width:15px;height:15px;}
+.ac-ic.recent{background:var(--neutral-g);color:var(--neutral);}
+.ac-body{min-width:0;flex:1;}
+.ac-title{font-size:13px;font-weight:550;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ac-sub{font-size:11.5px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ac-tag{font-family:var(--mono);font-size:10px;font-weight:600;padding:2px 7px;border-radius:5px;flex:none;}
+.ac-tag.closed{background:var(--ok-g);color:var(--ok);}
+.ac-tag.open{background:var(--accent-g);color:var(--accent2);}
+.ac-tag.danger{background:var(--bad-g);color:var(--bad);}
+
+.hdr-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex:none;}
+.pill{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:550;color:var(--mute2);padding:7px 12px;border-radius:99px;border:1px solid var(--line);background:var(--panel);white-space:nowrap;}
+.dot{width:7px;height:7px;border-radius:99px;background:var(--mute);}
+.dot.live{background:var(--ok);box-shadow:0 0 0 3px var(--ok-g);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+.icon-btn{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--ink2);cursor:pointer;display:grid;place-items:center;transition:var(--t);flex:none;}
+.icon-btn:hover{border-color:var(--line2);color:var(--ink);transform:translateY(-1px);}
+.icon-btn svg{width:17px;height:17px;}
+
+/* ── Layout ── */
+.wrap{max-width:1480px;margin:0 auto;padding:24px 28px 80px;}
+.section-title{font-family:var(--disp);font-size:13px;font-weight:600;color:var(--mute2);text-transform:uppercase;letter-spacing:.08em;margin:32px 0 14px;display:flex;align-items:center;gap:10px;}
+.section-title::after{content:"";flex:1;height:1px;background:var(--line);}
+
+/* ── Main tabs (Dashboard / SLA) — broad, centered segmented control ── */
+.tabbar{display:flex;justify-content:center;gap:8px;margin:8px auto 26px;padding:6px;max-width:620px;background:var(--panel);border:1px solid var(--line2);border-radius:16px;box-shadow:var(--sh);}
+.tabbar button{position:relative;flex:1;justify-content:center;font-family:var(--disp);font-size:15.5px;font-weight:650;letter-spacing:-.01em;color:var(--mute2);background:transparent;border:none;cursor:pointer;padding:15px 22px;border-radius:11px;transition:var(--t);display:inline-flex;align-items:center;gap:10px;}
+.tabbar button:hover{color:var(--ink);background:var(--panel2);}
+.tabbar button.on{color:#241400;background:linear-gradient(140deg,var(--amz),var(--amz2));box-shadow:0 4px 16px rgba(255,153,0,.32),inset 0 1px 0 rgba(255,255,255,.25);}
+.light .tabbar button.on{color:#fff;}
+.tabbar button.on::after{display:none;}
+.tabbar button .tcount{font-family:var(--mono);font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px;background:var(--panel2);color:var(--mute2);}
+.tabbar button.on .tcount{background:rgba(0,0,0,.22);color:#241400;}
+.light .tabbar button.on .tcount{background:rgba(255,255,255,.28);color:#fff;}
+@media(max-width:640px){.tabbar{max-width:100%;}.tabbar button{font-size:14px;padding:13px 12px;}}
+.tabpane{display:none;}
+.tabpane.on{display:block;animation:acIn .18s ease;}
+
+/* ── Filters ── */
+.filters{background:var(--panel);border:1px solid var(--line);border-radius:var(--r3);padding:18px 20px;margin-bottom:8px;box-shadow:var(--sh);display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap;}
+.fgroup{display:flex;flex-direction:column;gap:7px;}
+.fgroup>label{font-size:11px;font-weight:650;color:var(--mute2);text-transform:uppercase;letter-spacing:.07em;}
+.frow{display:flex;align-items:center;gap:8px;}
+.date-in{font-family:var(--body);font-size:13px;font-weight:500;color:var(--ink);background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:9px 11px;transition:var(--t);color-scheme:dark;}
+.light .date-in{color-scheme:light;}
+.date-in:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-g);}
+.frow .sep{font-size:12px;color:var(--mute);}
+.seg{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px;}
+.seg button{font-family:var(--body);font-size:12.5px;font-weight:550;color:var(--mute2);background:none;border:none;padding:8px 14px;border-radius:7px;cursor:pointer;transition:var(--t);white-space:nowrap;}
+.seg button.on{background:var(--accent);color:#fff;box-shadow:0 2px 8px rgba(76,147,255,.32);}
+.seg button:not(.on):hover{color:var(--ink);}
+.quick{display:flex;gap:6px;flex-wrap:wrap;}
+.quick button{font-family:var(--body);font-size:12px;font-weight:550;color:var(--mute2);background:var(--panel2);border:1px solid var(--line);padding:8px 12px;border-radius:8px;cursor:pointer;transition:var(--t);}
+.quick button:hover{border-color:var(--accent);color:var(--accent2);}
+.quick button.on{background:var(--accent-g);border-color:var(--accent);color:var(--accent2);}
+.btn-clear{font-family:var(--body);font-size:12px;font-weight:600;color:var(--mute2);background:none;border:1px solid var(--line);padding:9px 14px;border-radius:9px;cursor:pointer;transition:var(--t);margin-left:auto;}
+.btn-clear:hover{border-color:var(--bad);color:var(--bad);}
+.btn-adv{font-family:var(--body);font-size:12px;font-weight:600;color:var(--accent2);background:var(--accent-g);border:1px solid transparent;padding:9px 14px;border-radius:9px;cursor:pointer;transition:var(--t);display:flex;align-items:center;gap:7px;}
+.btn-adv:hover{border-color:var(--accent);}
+.btn-adv svg{width:14px;height:14px;transition:transform var(--t);}
+.btn-adv.open svg{transform:rotate(180deg);}
+
+/* Advanced filter panel */
+.adv{background:var(--panel);border:1px solid var(--line);border-radius:var(--r3);box-shadow:var(--sh);margin-bottom:24px;overflow:hidden;max-height:0;opacity:0;transition:max-height .3s ease,opacity .3s ease,margin .3s ease;}
+.adv.open{max-height:600px;opacity:1;}
+.adv-in{padding:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;}
+.adv-col label{font-size:11px;font-weight:650;color:var(--mute2);text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:10px;}
+.ms-list{display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto;}
+.ms-item{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--ink2);cursor:pointer;padding:5px 7px;border-radius:7px;transition:background var(--t);}
+.ms-item:hover{background:var(--panel2);}
+.ms-item input{accent-color:var(--accent);width:15px;height:15px;cursor:pointer;flex:none;}
+.ms-item .ct{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--mute);}
+.adv-txt{width:100%;font-family:var(--body);font-size:13px;color:var(--ink);background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:9px 11px;transition:var(--t);}
+.adv-txt:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-g);}
+.toggle-row{display:flex;align-items:center;gap:11px;cursor:pointer;font-size:13px;color:var(--ink2);font-weight:500;}
+.toggle{width:40px;height:23px;border-radius:99px;background:var(--panel2);border:1px solid var(--line);position:relative;transition:var(--t);flex:none;}
+.toggle::after{content:"";position:absolute;top:2px;left:2px;width:17px;height:17px;border-radius:99px;background:var(--mute);transition:var(--t);}
+.toggle.on{background:var(--accent-g);border-color:var(--accent);}
+.toggle.on::after{transform:translateX(17px);background:var(--accent);}
+
+/* ── KPI grid ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(184px,1fr));gap:14px;}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--r2);padding:18px 18px 16px;position:relative;overflow:hidden;box-shadow:var(--sh);transition:var(--t);}
+.kpi::before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--bar,var(--accent));opacity:.85;}
+.kpi:hover{transform:translateY(-2px);border-color:var(--line2);}
+.kpi .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.kpi .lbl{font-size:11.5px;font-weight:600;color:var(--mute2);text-transform:uppercase;letter-spacing:.05em;}
+.kpi .ic{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:var(--ic-bg,var(--accent-g));color:var(--ic,var(--accent));flex:none;}
+.kpi .ic svg{width:16px;height:16px;}
+.kpi .val{font-family:var(--disp);font-size:30px;font-weight:700;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums;}
+.kpi .sub{font-size:12px;color:var(--mute);margin-top:8px;font-weight:500;display:flex;align-items:center;gap:6px;}
+.badge{font-family:var(--mono);font-size:11px;font-weight:600;padding:2px 7px;border-radius:6px;background:var(--neutral-g);color:var(--neutral);font-variant-numeric:tabular-nums;}
+.badge.g{background:var(--ok-g);color:var(--ok);}
+.badge.r{background:var(--bad-g);color:var(--bad);}
+.badge.a{background:var(--warn-g);color:var(--warn);}
+
+/* ── Panels ── */
+.row2{display:grid;grid-template-columns:1.35fr 1fr;gap:18px;}
+@media(max-width:980px){.row2{grid-template-columns:1fr;}}
+.row-analytics{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px;}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r3);padding:22px;box-shadow:var(--sh);}
+.panel-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:12px;flex-wrap:wrap;}
+.panel-h h2{font-family:var(--disp);font-size:15px;font-weight:650;letter-spacing:-.01em;}
+.panel-h .meta{font-size:12px;color:var(--mute);font-weight:500;}
+
+.bars{display:flex;flex-direction:column;gap:13px;}
+.bar-row{display:grid;gap:6px;}
+.bar-top{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.bar-name{font-size:13px;font-weight:550;color:var(--ink2);display:flex;align-items:center;gap:8px;min-width:0;}
+.bar-name .sw{width:9px;height:9px;border-radius:3px;flex:none;}
+.bar-name span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bar-nums{font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--ink);white-space:nowrap;font-variant-numeric:tabular-nums;}
+.bar-nums em{color:var(--mute);font-style:normal;font-weight:500;margin-left:5px;}
+.bar-track{height:8px;border-radius:99px;background:var(--panel2);overflow:hidden;}
+.bar-fill{height:100%;border-radius:99px;transition:width .5s cubic-bezier(.4,0,.2,1);}
+
+.donut-wrap{display:flex;align-items:center;gap:26px;flex-wrap:wrap;justify-content:center;}
+.donut{position:relative;flex:none;}
+.donut .ctr{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.donut .ctr .big{font-family:var(--disp);font-size:32px;font-weight:700;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums;}
+.donut .ctr .cap{font-size:11px;color:var(--mute2);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-top:5px;}
+.legend{display:flex;flex-direction:column;gap:11px;}
+.leg-item{display:flex;align-items:center;gap:10px;font-size:13px;}
+.leg-item .sw{width:11px;height:11px;border-radius:4px;flex:none;}
+.leg-item .lt{color:var(--ink2);font-weight:500;flex:1;}
+.leg-item .lv{font-family:var(--mono);font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;}
+
+/* Stage funnel */
+.funnel{display:flex;flex-direction:column;gap:9px;}
+.fn-row{display:grid;grid-template-columns:140px 1fr 54px;align-items:center;gap:12px;}
+.fn-lbl{font-size:12.5px;color:var(--ink2);font-weight:550;display:flex;align-items:center;gap:8px;}
+.fn-lbl .fn-ic{width:24px;height:24px;border-radius:7px;background:var(--accent-g);color:var(--accent);display:grid;place-items:center;flex:none;}
+.fn-lbl .fn-ic svg{width:13px;height:13px;}
+.fn-track{height:26px;border-radius:7px;background:var(--panel2);overflow:hidden;position:relative;}
+.fn-fill{height:100%;border-radius:7px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .6s cubic-bezier(.4,0,.2,1);}
+.fn-val{font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--ink);text-align:right;font-variant-numeric:tabular-nums;}
+
+/* Volume chart */
+.vhead-seg{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:3px;gap:2px;}
+.vhead-seg button{font-family:var(--body);font-size:11.5px;font-weight:550;color:var(--mute2);background:none;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;transition:var(--t);}
+.vhead-seg button.on{background:var(--accent);color:#fff;}
+.vhead-seg button:not(.on):hover{color:var(--ink);}
+.vchart{display:flex;align-items:flex-end;gap:5px;height:230px;padding-top:10px;}
+
+/* SLA panel */
+.sla-top{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:22px;}
+.sla-stat{background:var(--panel2);border:1px solid var(--line);border-radius:var(--r2);padding:16px 18px;}
+.sla-stat .sl-lbl{font-size:11px;font-weight:600;color:var(--mute2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;}
+.sla-stat .sl-val{font-family:var(--disp);font-size:26px;font-weight:700;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums;}
+.sla-stat .sl-sub{font-size:11.5px;color:var(--mute);margin-top:6px;}
+.sla-split{display:flex;height:18px;border-radius:99px;overflow:hidden;background:var(--panel2);margin-bottom:16px;}
+.sla-split>span{transition:width .6s cubic-bezier(.4,0,.2,1);}
+.sla-split .seg-e{background:var(--ok);}
+.sla-split .seg-o{background:var(--accent);}
+.sla-split .seg-l{background:var(--bad);}
+.sla-leg{display:flex;gap:24px;flex-wrap:wrap;}
+.sla-leg .it{display:flex;align-items:center;gap:9px;font-size:13px;}
+.sla-leg .it .sw{width:11px;height:11px;border-radius:4px;flex:none;}
+.sla-leg .it .lt{color:var(--ink2);font-weight:500;}
+.sla-leg .it .lv{font-family:var(--mono);font-weight:600;color:var(--ink);margin-left:4px;}
+
+/* ── Order-wise SLA table ── */
+.slaw-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:4px 0 14px;}
+.slaw-controls .chip{cursor:pointer;font-size:12px;font-weight:600;padding:6px 12px;border-radius:99px;border:1px solid var(--line2);background:var(--panel2);color:var(--mute2);display:inline-flex;align-items:center;gap:7px;transition:var(--t);}
+.slaw-controls .chip .cnt{font-family:var(--mono);font-size:11px;background:var(--bg2);padding:1px 7px;border-radius:99px;}
+.slaw-controls .chip.on{color:var(--ink);border-color:var(--accent);background:var(--accent-g);}
+.slaw-controls .chip.on.brk{border-color:var(--bad);background:var(--bad-g);color:var(--bad);}
+.slaw-controls .btn-dl{margin-left:auto;}
+.slaw-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+.slaw-table th{position:sticky;top:0;background:var(--panel);text-align:left;font-size:10.5px;font-weight:650;text-transform:uppercase;letter-spacing:.05em;color:var(--mute);padding:9px 12px;border-bottom:1px solid var(--line2);white-space:nowrap;}
+.slaw-table td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;}
+.slaw-table tr:hover td{background:var(--panel2);cursor:pointer;}
+.slaw-table td.num{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--mono);}
+.slaw-table td.oid{font-family:var(--mono);color:var(--accent2);font-weight:600;white-space:nowrap;}
+.slaw-v{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-family:var(--mono);font-size:11.5px;padding:2px 9px;border-radius:99px;white-space:nowrap;}
+.slaw-v.early{background:var(--ok-g);color:var(--ok);}
+.slaw-v.ontime{background:var(--accent-g);color:var(--accent2);}
+.slaw-v.late{background:var(--bad-g);color:var(--bad);}
+.slaw-reason{color:var(--ink2);max-width:340px;}
+.slaw-src{font-size:10px;font-family:var(--mono);font-weight:600;padding:1px 6px;border-radius:5px;background:var(--neutral-g);color:var(--neutral);}
+.vbar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;min-width:0;height:100%;justify-content:flex-end;}
+.vbar{width:100%;max-width:38px;border-radius:6px 6px 0 0;background:linear-gradient(180deg,var(--accent2),var(--accent));transition:height .5s cubic-bezier(.4,0,.2,1),filter var(--t);cursor:pointer;min-height:3px;position:relative;}
+.vbar:hover{filter:brightness(1.15);}
+.vbar .vtip{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);font-family:var(--mono);font-size:11px;font-weight:600;padding:4px 8px;border-radius:6px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity var(--t);z-index:5;}
+.vbar:hover .vtip{opacity:1;}
+.vlbl{font-size:10.5px;color:var(--mute);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+
+/* ── TAT panel ── */
+.tat-legend{display:flex;gap:18px;flex-wrap:wrap;margin:2px 0 18px;}
+.tat-legend .it{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink2);font-weight:500;}
+.tat-legend .it .sw{width:11px;height:11px;border-radius:4px;flex:none;}
+.tat-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+.tat-table th{position:sticky;top:0;background:var(--panel);text-align:left;font-size:10.5px;font-weight:650;text-transform:uppercase;letter-spacing:.05em;color:var(--mute);padding:9px 12px;border-bottom:1px solid var(--line2);white-space:nowrap;}
+.tat-table td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;}
+.tat-table tr:hover td{background:var(--panel2);cursor:pointer;}
+.tat-table td.num{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--mono);}
+.tat-table td.oid{font-family:var(--mono);color:var(--accent2);font-weight:600;white-space:nowrap;}
+.tat-v{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-family:var(--mono);font-size:11px;padding:2px 9px;border-radius:99px;white-space:nowrap;}
+.tat-v.ontrack{background:var(--ok-g);color:var(--ok);}
+.tat-v.delay{background:var(--bad-g);color:var(--bad);}
+.tat-v.calendar{background:var(--warn-g);color:var(--warn);}
+.tat-v.listing{background:var(--inv-g);color:var(--inv);}
+.tat-comment{color:var(--ink2);max-width:420px;line-height:1.45;}
+.tat-comment .tc-tag{display:inline-block;font-family:var(--mono);font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:1px 6px;border-radius:5px;margin-right:6px;vertical-align:1px;}
+.tc-tag.listing{background:var(--inv-g);color:var(--inv);}
+.tc-tag.calendar{background:var(--warn-g);color:var(--warn);}
+.tc-tag.delay{background:var(--bad-g);color:var(--bad);}
+.tc-tag.ok{background:var(--ok-g);color:var(--ok);}
+
+/* TAT breakdown inside drawer */
+.tat-steps{display:flex;flex-direction:column;gap:2px;}
+.tat-step{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:10px 12px;border-radius:9px;background:var(--panel2);border:1px solid var(--line);}
+.tat-step .ts-l{min-width:0;}
+.tat-step .ts-name{font-size:12.5px;font-weight:600;color:var(--ink);}
+.tat-step .ts-dates{font-family:var(--mono);font-size:10.5px;color:var(--mute);margin-top:2px;}
+.tat-step .ts-delay{font-family:var(--mono);font-size:12px;font-weight:700;padding:3px 9px;border-radius:7px;white-space:nowrap;}
+.ts-delay.ok{background:var(--ok-g);color:var(--ok);}
+.ts-delay.bad{background:var(--bad-g);color:var(--bad);}
+.ts-delay.pend{background:var(--neutral-g);color:var(--neutral);}
+.tat-banner{border-radius:10px;padding:12px 14px;font-size:12.5px;line-height:1.5;margin-bottom:12px;border:1px solid;}
+.tat-banner.listing{background:var(--inv-g);border-color:var(--inv);color:var(--inv);}
+.tat-banner.calendar{background:var(--warn-g);border-color:var(--warn);color:var(--warn);}
+.tat-banner.delay{background:var(--bad-g);border-color:var(--bad);color:var(--bad);}
+.tat-banner.ok{background:var(--ok-g);border-color:var(--ok);color:var(--ok);}
+.tat-banner strong{font-weight:700;}
+
+/* ── Table ── */
+.tbl-panel{margin-top:18px;}
+.tbl-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
+.chips{display:flex;gap:6px;flex-wrap:wrap;}
+.chip{font-family:var(--body);font-size:12px;font-weight:550;color:var(--mute2);background:var(--panel2);border:1px solid var(--line);padding:7px 12px;border-radius:99px;cursor:pointer;transition:var(--t);display:flex;align-items:center;gap:6px;}
+.chip:hover{border-color:var(--line2);color:var(--ink);}
+.chip.on{color:#fff;border-color:transparent;}
+.chip.on.s-closed{background:var(--ok);}
+.chip.on.s-open{background:var(--accent);}
+.chip.on.s-danger{background:var(--bad);}
+.chip .cnt{font-family:var(--mono);font-size:11px;opacity:.85;}
+.btn-dl{font-family:var(--body);font-size:12.5px;font-weight:600;color:#241400;background:var(--amz);border:none;padding:10px 16px;border-radius:10px;cursor:pointer;transition:var(--t);display:flex;align-items:center;gap:7px;margin-left:auto;box-shadow:0 2px 12px rgba(255,153,0,.34);}
+.btn-dl:hover{background:var(--amz2);transform:translateY(-1px);}
+.btn-dl svg{width:15px;height:15px;}
+.tbl-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r2);}
+table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:920px;}
+thead th{position:sticky;top:0;background:var(--panel2);text-align:left;font-size:10.5px;font-weight:650;color:var(--mute2);text-transform:uppercase;letter-spacing:.05em;padding:12px 14px;border-bottom:1px solid var(--line);white-space:nowrap;cursor:pointer;user-select:none;}
+thead th:hover{color:var(--ink);}
+thead th .ar{opacity:.4;margin-left:4px;font-size:9px;}
+tbody td{padding:11px 14px;border-bottom:1px solid var(--line);color:var(--ink2);white-space:nowrap;vertical-align:middle;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr{cursor:pointer;transition:background var(--t);}
+tbody tr:hover{background:var(--panel2);}
+td.id{font-family:var(--mono);font-size:11.5px;color:var(--mute2);}
+td.prod{max-width:280px;white-space:normal;line-height:1.35;color:var(--ink2);}
+td.date{font-family:var(--mono);font-size:11.5px;color:var(--mute2);font-variant-numeric:tabular-nums;}
+.st-tag{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;padding:4px 9px;border-radius:7px;white-space:nowrap;}
+.st-tag .sw{width:6px;height:6px;border-radius:99px;flex:none;}
+.s-closed-t{background:var(--ok-g);color:var(--ok);}
+.s-open-t{background:var(--accent-g);color:var(--accent2);}
+.s-danger-t{background:var(--bad-g);color:var(--bad);}
+.health{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;white-space:nowrap;}
+.health.healthy{background:var(--ok-g);color:var(--ok);}
+.health.delayed{background:var(--warn-g);color:var(--warn);}
+.health.critical{background:var(--bad-g);color:var(--bad);}
+.tatfx{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;white-space:nowrap;font-family:var(--mono);}
+.tatfx.ontrack{background:var(--ok-g);color:var(--ok);}
+.tatfx.delay{background:var(--bad-g);color:var(--bad);}
+.tatfx.calendar{background:var(--warn-g);color:var(--warn);}
+.tatfx.listing{background:var(--inv-g);color:var(--inv);}
+.tatfx.none{color:var(--mute2);background:var(--neutral-g);}
+.remark-cell{max-width:300px;font-size:11.5px;line-height:1.4;}
+.remark-cell span{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+
+.tbl-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px;flex-wrap:wrap;}
+.tbl-foot .info{font-size:12.5px;color:var(--mute);font-weight:500;}
+.pager{display:flex;gap:6px;align-items:center;}
+.pager button{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--ink2);background:var(--panel2);border:1px solid var(--line);min-width:34px;height:34px;padding:0 9px;border-radius:8px;cursor:pointer;transition:var(--t);}
+.pager button:hover:not(:disabled){border-color:var(--accent);color:var(--accent2);}
+.pager button.on{background:var(--accent);color:#fff;border-color:transparent;}
+.pager button:disabled{opacity:.35;cursor:not-allowed;}
+
+/* ── Drawer / modal ── */
+.scrim{position:fixed;inset:0;background:rgba(5,8,14,.55);backdrop-filter:blur(3px);opacity:0;visibility:hidden;transition:opacity .25s ease,visibility .25s ease;z-index:90;}
+.scrim.show{opacity:1;visibility:visible;}
+.drawer{position:fixed;top:0;right:0;height:100vh;width:min(520px,100vw);background:var(--bg2);border-left:1px solid var(--line2);box-shadow:var(--sh-drawer);z-index:100;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;}
+.drawer.show{transform:none;}
+.dr-head{padding:20px 24px;border-bottom:1px solid var(--line);display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex:none;background:var(--panel);}
+.dr-head h2{font-family:var(--disp);font-size:14px;font-weight:600;color:var(--mute2);margin-bottom:5px;}
+.dr-head .oid{font-family:var(--mono);font-size:17px;font-weight:600;color:var(--ink);letter-spacing:-.01em;}
+.dr-close{width:36px;height:36px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);color:var(--ink2);cursor:pointer;display:grid;place-items:center;transition:var(--t);flex:none;}
+.dr-close:hover{border-color:var(--bad);color:var(--bad);}
+.dr-close svg{width:17px;height:17px;}
+.dr-body{flex:1;overflow-y:auto;padding:24px;}
+.dr-sec{margin-bottom:28px;}
+.dr-sec-h{font-size:11px;font-weight:650;color:var(--mute2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.dr-sec-h::after{content:"";flex:1;height:1px;background:var(--line);}
+.summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.sm-item{min-width:0;}
+.sm-item.full{grid-column:1/-1;}
+.sm-lbl{font-size:11px;color:var(--mute);font-weight:550;margin-bottom:3px;}
+.sm-val{font-size:13.5px;color:var(--ink);font-weight:500;word-break:break-word;line-height:1.4;}
+.sm-val.mono{font-family:var(--mono);font-size:12.5px;}
+
+/* Journey timeline */
+.journey{position:relative;padding-left:8px;}
+.jstep{position:relative;display:grid;grid-template-columns:34px 1fr;gap:14px;padding-bottom:22px;}
+.jstep:last-child{padding-bottom:0;}
+.jline{position:absolute;left:16px;top:30px;bottom:-4px;width:2px;background:var(--line2);overflow:hidden;}
+.jstep:last-child .jline{display:none;}
+.jline-fill{position:absolute;inset:0;background:var(--ok);transform:scaleY(0);transform-origin:top;animation:growLine .6s ease forwards;}
+@keyframes growLine{to{transform:scaleY(1)}}
+.jdot{width:34px;height:34px;border-radius:99px;display:grid;place-items:center;flex:none;border:2px solid var(--line2);background:var(--panel);color:var(--mute);z-index:2;transition:var(--t);}
+.jdot svg{width:16px;height:16px;}
+.jstep.done .jdot{background:var(--ok-g);border-color:var(--ok);color:var(--ok);}
+.jstep.current .jdot{background:var(--accent-g);border-color:var(--accent);color:var(--accent);box-shadow:0 0 0 4px var(--accent-g);animation:pulseDot 2s infinite;}
+@keyframes pulseDot{0%,100%{box-shadow:0 0 0 4px var(--accent-g)}50%{box-shadow:0 0 0 7px transparent}}
+.jstep.delayed .jdot{background:var(--bad-g);border-color:var(--bad);color:var(--bad);}
+.jstep.done .jline-fill{background:var(--ok);}
+.jbody{padding-top:5px;min-width:0;}
+.jtitle{font-size:13.5px;font-weight:600;color:var(--ink);margin-bottom:2px;}
+.jstep.pending .jtitle{color:var(--mute);}
+.jdate{font-family:var(--mono);font-size:11.5px;color:var(--mute2);}
+.jbadge{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 8px;border-radius:6px;margin-top:5px;}
+.jbadge.current{background:var(--accent-g);color:var(--accent2);}
+.jbadge.delayed{background:var(--bad-g);color:var(--bad);}
+
+/* Event log */
+.elog{display:flex;flex-direction:column;gap:0;}
+.elog-item{display:grid;grid-template-columns:14px 1fr;gap:13px;padding-bottom:18px;position:relative;}
+.elog-item:last-child{padding-bottom:0;}
+.elog-line{position:absolute;left:6px;top:14px;bottom:-4px;width:1.5px;background:var(--line);}
+.elog-item:last-child .elog-line{display:none;}
+.elog-dot{width:13px;height:13px;border-radius:99px;background:var(--accent);border:2px solid var(--bg2);margin-top:2px;z-index:2;flex:none;}
+.elog-dot.delivered{background:var(--ok);}
+.elog-dot.delay{background:var(--bad);}
+.elog-body{min-width:0;}
+.elog-date{font-family:var(--mono);font-size:11px;color:var(--mute2);margin-bottom:1px;}
+.elog-desc{font-size:13px;color:var(--ink2);font-weight:500;}
+.elog-loc{font-size:11.5px;color:var(--mute);}
+
+/* ── States ── */
+.loading,.error,.empty{padding:80px 20px;text-align:center;}
+.spinner{width:40px;height:40px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;margin:0 auto 18px;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading p,.empty p{color:var(--mute2);font-size:14px;}
+.error{color:var(--bad);}
+.error h3{font-family:var(--disp);font-size:17px;margin-bottom:8px;}
+.error p{color:var(--mute2);font-size:13px;max-width:480px;margin:0 auto 16px;line-height:1.6;}
+.error code{font-family:var(--mono);font-size:11.5px;background:var(--panel2);padding:2px 6px;border-radius:5px;color:var(--ink2);}
+.empty svg{width:44px;height:44px;color:var(--mute);margin-bottom:14px;}
+
+/* Skeleton */
+.skel-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(184px,1fr));gap:14px;margin-bottom:24px;}
+.skel{background:linear-gradient(90deg,var(--panel) 0%,var(--panel2) 50%,var(--panel) 100%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:var(--r2);}
+@keyframes shimmer{to{background-position:-200% 0}}
+.skel-kpi{height:108px;}
+.skel-row{height:46px;border-radius:10px;margin-bottom:8px;}
+
+footer{text-align:center;padding:28px;color:var(--mute);font-size:12px;border-top:1px solid var(--line);margin-top:40px;}
+footer a{color:var(--accent2);text-decoration:none;}
+footer a:hover{text-decoration:underline;}
+
+@media(max-width:640px){
+  .wrap{padding:18px 16px 60px;} .hdr-in{padding:12px 16px;gap:12px;}
+  .gsearch{order:3;max-width:none;flex-basis:100%;}
+  .kpi .val{font-size:26px;} .donut-wrap{flex-direction:column;}
+  .drawer{width:100vw;border-left:none;} .summary-grid{grid-template-columns:1fr;}
+  .fn-row{grid-template-columns:110px 1fr 46px;}
+}
+/* ══ Flow banner (signature) ══ */
+.flowbar{margin-top:22px;background:linear-gradient(120deg,var(--panel) 0%,var(--panel2) 100%);border:1px solid var(--line);border-radius:var(--r3);box-shadow:var(--sh);padding:18px 24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;position:relative;overflow:hidden;}
+.flowbar::before{content:"";position:absolute;inset:0;background:radial-gradient(600px 200px at 88% 50%,var(--uae-g),transparent 70%);pointer-events:none;}
+.flow-cap{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--mute2);}
+.flow-node{display:flex;align-items:center;gap:10px;position:relative;z-index:1;}
+.flow-flag{width:34px;height:34px;border-radius:99px;display:grid;place-items:center;font-size:18px;line-height:1;border:1.5px solid var(--line2);background:var(--bg2);flex:none;}
+.flow-src-group{display:flex;flex-direction:column;gap:7px;}
+.flow-src{display:flex;align-items:center;gap:9px;}
+.flow-src .nm{font-size:13px;font-weight:600;color:var(--ink);}
+.flow-src .nm small{display:block;font-size:10px;font-weight:600;color:var(--mute2);text-transform:uppercase;letter-spacing:.06em;}
+.flow-connector{flex:none;width:54px;height:44px;position:relative;}
+.flow-connector svg{width:100%;height:100%;overflow:visible;}
+.flow-connector path{fill:none;stroke:var(--line2);stroke-width:1.6;}
+.flow-connector .dash{stroke:var(--amz);stroke-width:1.8;stroke-dasharray:5 7;animation:flowdash 1.1s linear infinite;opacity:.9;}
+@keyframes flowdash{to{stroke-dashoffset:-24;}}
+.flow-dest{display:flex;align-items:center;gap:11px;}
+.amz-badge{display:inline-flex;align-items:center;gap:8px;background:var(--bg2);border:1.5px solid var(--amz);border-radius:11px;padding:9px 14px;box-shadow:0 0 0 3px var(--amz-g);}
+.amz-badge .amz-flag{font-size:17px;line-height:1;}
+.amz-badge .amz-txt{font-family:var(--disp);font-weight:700;font-size:14px;letter-spacing:-.01em;color:var(--ink);}
+.amz-badge .amz-txt b{color:var(--amz);}
+.flow-dest .dcap{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--uae);margin-bottom:3px;}
+.flow-cust{display:flex;align-items:center;gap:9px;color:var(--ink2);font-size:13px;font-weight:600;}
+.flow-cust .cic{width:32px;height:32px;border-radius:99px;background:var(--uae-g);color:var(--uae);display:grid;place-items:center;flex:none;}
+.flow-cust .cic svg{width:16px;height:16px;}
+.flow-tag{margin-left:auto;font-size:11.5px;color:var(--mute);font-weight:500;position:relative;z-index:1;}
+@media(max-width:860px){.flow-tag{display:none;}}
+@media(max-width:560px){.flowbar{gap:14px;padding:16px;} .flow-connector{width:38px;}}
+
+/* ══ Attention Required strip ══ */
+.attn{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--bad);border-radius:var(--r3);box-shadow:var(--sh);padding:16px 20px;}
+.attn-h{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.attn-h .ico{width:30px;height:30px;border-radius:9px;background:var(--bad-g);color:var(--bad);display:grid;place-items:center;flex:none;}
+.attn-h .ico svg{width:17px;height:17px;}
+.attn-h h3{font-family:var(--disp);font-size:14.5px;font-weight:650;}
+.attn-h .total{margin-left:auto;font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--bad);background:var(--bad-g);padding:4px 11px;border-radius:99px;}
+.attn-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:10px;}
+.attn-card{display:flex;align-items:center;gap:11px;padding:12px 14px;border-radius:var(--r2);background:var(--panel2);border:1px solid var(--line);cursor:pointer;transition:var(--t);text-align:left;font-family:var(--body);}
+.attn-card:hover{border-color:var(--line2);transform:translateY(-1px);}
+.attn-card:disabled{opacity:.5;cursor:default;transform:none;}
+.attn-card .dotbig{width:10px;height:10px;border-radius:99px;flex:none;}
+.attn-card .ac-n{display:block;font-family:var(--disp);font-size:20px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;color:var(--ink);}
+.attn-card .ac-l{display:block;font-size:11px;color:var(--mute2);font-weight:550;margin-top:4px;line-height:1.25;}
+.attn-card .ac-txt{min-width:0;}
+
+/* ══ Source performance ══ */
+.src-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media(max-width:760px){.src-grid{grid-template-columns:1fr;}}
+.src-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r3);box-shadow:var(--sh);padding:20px 22px;position:relative;overflow:hidden;}
+.src-card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:var(--sc-accent,var(--accent));}
+.src-card-h{display:flex;align-items:center;gap:12px;margin-bottom:18px;}
+.src-card-h .sflag{width:38px;height:38px;border-radius:99px;display:grid;place-items:center;font-size:20px;line-height:1;background:var(--bg2);border:1.5px solid var(--line2);flex:none;}
+.src-card-h .snm{font-family:var(--disp);font-size:16px;font-weight:700;letter-spacing:-.01em;}
+.src-card-h .scap{font-size:10.5px;font-weight:650;text-transform:uppercase;letter-spacing:.07em;color:var(--mute2);}
+.src-card-h .stot{margin-left:auto;text-align:right;}
+.src-card-h .stot .n{font-family:var(--disp);font-size:23px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;}
+.src-card-h .stot .l{font-size:10.5px;color:var(--mute2);font-weight:550;text-transform:uppercase;letter-spacing:.05em;}
+.src-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+.src-metric{background:var(--panel2);border:1px solid var(--line);border-radius:var(--r);padding:11px 12px;}
+.src-metric .mv{font-family:var(--disp);font-size:18px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;}
+.src-metric .ml{font-size:10.5px;color:var(--mute2);font-weight:550;margin-top:4px;text-transform:uppercase;letter-spacing:.04em;}
+.src-delbar{margin-top:2px;}
+.src-delbar .sd-top{display:flex;justify-content:space-between;font-size:11.5px;font-weight:600;color:var(--ink2);margin-bottom:6px;}
+.src-delbar .sd-top .pct{font-family:var(--mono);color:var(--uae);}
+.src-track{height:8px;border-radius:99px;background:var(--panel2);overflow:hidden;}
+.src-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--uae),#0EA968);transition:width .6s cubic-bezier(.4,0,.2,1);}
+
+/* Source badge in table + drawer */
+.srcbadge{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:3px 8px 3px 5px;border-radius:99px;white-space:nowrap;border:1px solid var(--line2);background:var(--panel2);}
+.srcbadge .fl{font-size:12px;line-height:1;}
+.destchip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--uae);background:var(--uae-g);border:1px solid var(--uae);border-radius:8px;padding:5px 10px;}
+
+/* Drawer route header */
+.dr-route{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line);border-radius:var(--r2);padding:12px 14px;margin-bottom:20px;}
+.dr-route .rr-flag{width:30px;height:30px;border-radius:99px;display:grid;place-items:center;font-size:15px;background:var(--bg2);border:1.5px solid var(--line2);flex:none;}
+.dr-route .rr-flag.d{border-color:var(--uae);}
+.dr-route .rr-arrow{color:var(--amz);font-weight:700;}
+.dr-route .rr-lbl{font-size:10px;font-weight:650;text-transform:uppercase;letter-spacing:.06em;color:var(--mute2);}
+.dr-route .rr-val{font-size:12.5px;font-weight:600;color:var(--ink);}
+
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-in">
+    <div class="brand">
+      <div class="glyph" title="Cross-border control tower">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4"/><path d="M12 22v-6"/><circle cx="12" cy="11" r="3.2"/><path d="M4.6 6.5l2.9 2.2"/><path d="M19.4 6.5l-2.9 2.2"/><path d="M4 18.5l4.2-3"/><path d="M20 18.5l-4.2-3"/></svg>
+      </div>
+      <div class="brand-txt">
+        <h1>Amazon UAE Order Control Tower</h1>
+        <p>US &amp; India Procurement <span class="arw">→</span> Amazon.ae Fulfilment</p>
+      </div>
+      <div class="route-badges" aria-label="US and India source to Amazon.ae destination">
+        <span class="flagchip src" title="Procurement source: USA">🇺🇸</span>
+        <span class="flagchip src" title="Procurement source: India">🇮🇳</span>
+        <span class="route-arrow">→</span>
+        <span class="flagchip dest" title="Sales destination: Amazon.ae">🇦🇪</span>
+      </div>
+    </div>
+
+    <!-- Global search -->
+    <div class="gsearch" id="gsearch">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      <input type="text" id="globalSearch" placeholder="Search Order ID, SKU, ASIN, AWB or Product…" autocomplete="off" spellcheck="false">
+      <span class="kbd">/</span>
+      <div class="ac" id="acBox"></div>
+    </div>
+
+    <div class="hdr-tools">
+      <span class="pill"><span class="dot live" id="liveDot"></span><span id="syncTxt">Syncing…</span></span>
+      <button class="icon-btn" id="refreshBtn" title="Refresh data" aria-label="Refresh">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      </button>
+      <button class="icon-btn" id="themeBtn" title="Toggle theme" aria-label="Theme">
+        <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- Shipment flow banner (signature) -->
+  <div class="flowbar">
+    <span class="flow-cap">Procurement<br>sources</span>
+    <div class="flow-src-group">
+      <div class="flow-src"><span class="flow-flag">🇺🇸</span><span class="nm">USA<small>Source</small></span></div>
+      <div class="flow-src"><span class="flow-flag">🇮🇳</span><span class="nm">India<small>Source</small></span></div>
+    </div>
+    <div class="flow-connector" aria-hidden="true">
+      <svg viewBox="0 0 54 44" preserveAspectRatio="none">
+        <path d="M2 11 H26 Q34 11 34 22"/><path d="M2 33 H26 Q34 33 34 22"/><path d="M34 22 H52"/>
+        <path class="dash" d="M2 11 H26 Q34 11 34 22 H52"/><path class="dash" d="M2 33 H26 Q34 33 34 22"/>
+      </svg>
+    </div>
+    <div class="flow-dest">
+      <div>
+        <div class="dcap">Sales destination</div>
+        <div class="amz-badge"><span class="amz-flag">🇦🇪</span><span class="amz-txt"><b>amazon</b>.ae</span></div>
+      </div>
+    </div>
+    <span class="route-arrow" style="font-size:16px">→</span>
+    <div class="flow-cust"><span class="cic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg></span>Customer</div>
+    <span class="flow-tag">Cross-border order fulfilment control tower</span>
+  </div>
+
+  <!-- Main tabs -->
+  <div class="tabbar" id="tabbar" style="display:none">
+    <button data-tab="dash" class="on">Dashboard</button>
+    <button data-tab="sla">SLA <span class="tcount" id="slaTabCount">0</span></button>
+  </div>
+
+  <!-- Attention Required -->
+  <div id="attnMount"></div>
+
+  <!-- Filters -->
+  <div class="section-title" style="margin-top:26px">Amazon.ae order filters</div>
+  <div class="filters" id="filterBar" style="display:none">
+    <div class="fgroup">
+      <label id="dateModeLbl">Date range · Order date</label>
+      <div class="frow">
+        <input type="date" class="date-in" id="dFrom">
+        <span class="sep">→</span>
+        <input type="date" class="date-in" id="dTo">
+      </div>
+    </div>
+    <div class="fgroup">
+      <label>Source</label>
+      <div class="seg" id="sourceSeg">
+        <button data-src="all" class="on">All</button>
+        <button data-src="US">🇺🇸 USA</button>
+        <button data-src="India">🇮🇳 India</button>
+      </div>
+    </div>
+    <div class="fgroup">
+      <label>Filter by</label>
+      <div class="seg" id="dateMode">
+        <button data-mode="order" class="on">Order date</button>
+        <button data-mode="ship">Latest ship date</button>
+      </div>
+    </div>
+    <div class="fgroup">
+      <label>Quick ranges</label>
+      <div class="quick" id="quickRanges">
+        <button data-days="7">7d</button>
+        <button data-days="30">30d</button>
+        <button data-days="90">90d</button>
+        <button data-days="0" class="on">All</button>
+      </div>
+    </div>
+    <button class="btn-adv" id="advBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      Advanced
+    </button>
+    <button class="btn-clear" id="clearBtn">Reset</button>
+  </div>
+
+  <div id="srcWarn" style="color:var(--warn);font-size:12px;margin:8px 2px 0;"></div>
+
+  <!-- Advanced filters -->
+  <div class="adv" id="advPanel">
+    <div class="adv-in">
+      <div class="adv-col">
+        <label>Order state</label>
+        <div class="ms-list" id="msState"></div>
+      </div>
+      <div class="adv-col">
+        <label>Status (multi-select)</label>
+        <div class="ms-list" id="msStatus"></div>
+      </div>
+      <div class="adv-col">
+        <label>AWB contains</label>
+        <input type="text" class="adv-txt" id="awbFilter" placeholder="e.g. JTE300…" autocomplete="off">
+        <label style="margin-top:18px">Toggles</label>
+        <div style="display:flex;flex-direction:column;gap:12px;margin-top:4px">
+          <div class="toggle-row" id="tgDelayed"><span class="toggle"></span>Delayed orders only</div>
+          <div class="toggle-row" id="tgInv"><span class="toggle"></span>Inventory orders only</div>
+          <div class="toggle-row" id="tgProcFail"><span class="toggle"></span>Procurement failures only</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="content">
+    <div class="skel-grid">
+      <div class="skel skel-kpi"></div><div class="skel skel-kpi"></div><div class="skel skel-kpi"></div>
+      <div class="skel skel-kpi"></div><div class="skel skel-kpi"></div><div class="skel skel-kpi"></div>
+    </div>
+    <div class="loading"><div class="spinner"></div><p>Loading orders from Google Sheets…</p></div>
+  </div>
+</div>
+
+<!-- Drawer -->
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-hidden="true"></aside>
+
+<footer>
+  Live data from <a id="sheetLink" href="#" target="_blank" rel="noopener">Google Sheets</a> ·
+  Auto-refreshes every 5 min · Press <strong>/</strong> to search · Hosted on GitHub Pages
+</footer>
+
+<script>
+/* ════════════════════════════════════════════════════════════════════
+   ORDER INTELLIGENCE DASHBOARD — app.js
+   US → Amazon.ae fulfilment tracker. Reads a public Google Sheet via its
+   CSV export endpoint (no backend). Modular, commented, performance-minded.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ─────────────────────────── CONFIG ─────────────────────────── */
+const SHEET_ID = "1o9FFZyHjVAgej2CqrNv-JcVCy-D1CfwPNwqmgI0Y_Xk";
+
+/* ── Data sources ─────────────────────────────────────────────
+   Both tabs live in the SAME Google Sheet. Each source names the tab
+   by its gid (the number after #gid= in the tab's URL). The India tab
+   ("Support_IN") has ONE extra column ("Qc Status", the "N" column) and
+   uses "Value" instead of "AED Price", so its raw column order differs.
+   Fill in the India gid below (open the Support_IN tab in Google Sheets
+   and copy the number after "gid=" in the address bar).                */
+const SOURCES = [
+  { key:"US",    label:"US",    gid:"0",           layout:"us" },
+  { key:"India", label:"India", gid:"1425699792", layout:"in" },
+];
+const csvUrl = gid => `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&gid=${gid}`;
+const GID = "0";                                 // kept for the footer sheet link
+const CSV_URL = csvUrl(GID);
+
+/* Canonical column indices (0-based) used everywhere in the app.
+   Raw rows from each source are re-mapped into THIS shape by normalizeRow(),
+   so the rest of the dashboard never has to know which country a row is from.
+   Two India-only fields are appended at the end: qcStatus + source.        */
+const COL = {
+  orderId:0, itemId:1, orderDate:2, earliestDel:3, latestShip:4,
+  sku:5, product:6, qty:7, aedPrice:8, asin:9, purchaseDate:10, amazonEta:11,
+  deliveredDate:12, releasedDate:13, awb:14, notProcured:15,
+  toDubai:16, recvDubai:17, shipDubai:18, selfAwb:19,
+  lastMile:20, lastMileDate:21, cancel:22, remark:23, isInv:24,
+  status:25, orderState:26,
+  qcStatus:27, source:28          // ← India-only reason + source tag
+};
+
+/* Raw → canonical index maps, one per source layout.
+   US layout matches COL 0..26 exactly (no qcStatus).
+   India layout inserts "Qc Status" at raw index 13, shifting everything
+   after it up by one, and its price column ("Value") sits at raw index 8. */
+const LAYOUT = {
+  us: {
+    orderId:0, itemId:1, orderDate:2, earliestDel:3, latestShip:4,
+    sku:5, product:6, qty:7, aedPrice:8, asin:9, purchaseDate:10, amazonEta:11,
+    deliveredDate:12, releasedDate:13, awb:14, notProcured:15,
+    toDubai:16, recvDubai:17, shipDubai:18, selfAwb:19,
+    lastMile:20, lastMileDate:21, cancel:22, remark:23, isInv:24,
+    status:25, orderState:26, qcStatus:null
+  },
+  in: {
+    orderId:0, itemId:1, orderDate:2, earliestDel:3, latestShip:4,
+    sku:5, product:6, qty:7, aedPrice:8, asin:9, purchaseDate:10, amazonEta:11,
+    deliveredDate:12, qcStatus:13, releasedDate:14, awb:15, notProcured:16,
+    toDubai:17, recvDubai:18, shipDubai:19, selfAwb:20,
+    lastMile:21, lastMileDate:22, cancel:23, remark:24, isInv:25,
+    status:26, orderState:27
+  }
+};
+
+/** Re-map one raw CSV row from `source.layout` into the canonical COL shape. */
+function normalizeRow(raw, source){
+  const map = LAYOUT[source.layout];
+  const out = [];
+  // place every canonical field except the two trailing extras
+  for(const k in COL){
+    if(k==="qcStatus"||k==="source") continue;
+    const ri = map[k];
+    out[COL[k]] = (ri==null || raw[ri]==null) ? "" : raw[ri];
+  }
+  out[COL.qcStatus] = (map.qcStatus==null || raw[map.qcStatus]==null) ? "" : raw[map.qcStatus];
+  out[COL.source]   = source.key;
+  return out;
+}
+
+/** Parse the AED sales value (column I) into a number. */
+function saleVal(row){
+  const v = parseFloat((""+(row[COL.aedPrice]||"")).replace(/[^0-9.\-]/g,""));
+  return isNaN(v) ? 0 : v;
+}
+/** Format a number as AED currency. */
+const aed = n => "AED " + Math.round(n||0).toLocaleString("en-US");
+
+/* Tunables for delay detection */
+const STUCK_DAYS = 7;        // no progress for this many days → flag
+
+/* ─────────────────────────── STATE ─────────────────────────── */
+let DATA = [], FILT = [], dateMode = "order", quickDays = 0;
+let sourceFilter = "all";                        // "all" | "US" | "India"
+let tblPage = 1, tblPer = 25, tblSort = {key:"orderDate",dir:-1};
+let tblStateFilter = "";                       // single chip filter (table)
+let globalQuery = "";                          // global search string
+let advStatusSel = new Set();                  // multi-select status filter
+let advStateSel = new Set();                   // multi-select state filter
+let advAwb = "", tgDelayed = false, tgInv = false, tgProcFail = false;
+let volMode = "week";                           // daily / weekly / monthly volume toggle
+let slawFilter = "breached";                     // order-wise SLA table: all | breached | met
+let activeTab = "dash";                           // dash | sla
+let recentSearches = loadRecent();
+
+/* ─────────────────────────── HELPERS ─────────────────────────── */
+const $  = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+const nf = n => n.toLocaleString("en-US");
+const pct = (a,b) => b>0 ? ((a/b*100).toFixed(1)+"%") : "0%";
+const esc = s => (""+s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const debounce = (fn,ms=120)=>{let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);};};
+
+/** Parse a DD/MM/YYYY (or other) string into a local-midnight Date. */
+function parseDMY(s){
+  if(!s) return null;
+  s = (""+s).trim();
+  const m = s.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if(m){ const d=new Date(+m[3],+m[2]-1,+m[1]); return isNaN(d)?null:d; }
+  const d=new Date(s); return isNaN(d)?null:d;
+}
+const fmtD  = d => d ? `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}` : "—";
+const fmtDT = d => d ? `${fmtD(d)}` : "—";
+const toISO = d => d ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}` : "";
+const today0 = () => { const t=new Date(); t.setHours(0,0,0,0); return t; };
+const daysBetween = (a,b) => Math.round((b-a)/86400000);
+
+/** Build a local Date from a yyyy-mm-dd input value (avoids UTC off-by-one). */
+function mkLocal(v,end){
+  if(!v) return null;
+  const [y,m,d]=v.split("-").map(Number);
+  return new Date(y,m-1,d, end?23:0, end?59:0, end?59:0, end?999:0);
+}
+
+/* ─────────────────────── QC (India) ─────────────────────────
+   India orders carry a "Qc Status" column. When an order's Status is
+   "QC failed cannot ship", that Qc Status value IS the failure reason.
+   These helpers centralise that logic so the table, drawer, KPIs and
+   CSV export all read QC state consistently.                          */
+function isQcFailed(row){
+  return (""+(row[COL.status]||"")).toLowerCase().includes("qc failed");
+}
+/** The QC failure reason for a QC-failed order (empty string otherwise). */
+function qcReason(row){
+  if(!isQcFailed(row)) return "";
+  const q=(""+(row[COL.qcStatus]||"")).trim();
+  return q || "Reason not specified";
+}
+/** Raw Qc Status value (any India row), trimmed. */
+function qcStatusVal(row){ return (""+(row[COL.qcStatus]||"")).trim(); }
+
+/* ─────────────────────── CLASSIFICATION ─────────────────────── */
+/** Open / Closed / Danger — trusts sheet's Order State col, else derives. */
+function deriveState(row){
+  const ss=(row[COL.orderState]||"").trim().toLowerCase();
+  if(ss.includes("closed")) return "closed";
+  if(ss.includes("danger")) return "danger";
+  if(ss.includes("open"))   return "open";
+  const st=(row[COL.status]||"").toLowerCase();
+  if(st.includes("delivered to customer")||st.includes("order cancelled")) return "closed";
+  const ship=parseDMY(row[COL.latestShip]);
+  if(ship && today0()>ship) return "danger";
+  return "open";
+}
+
+/* ──────────────────── ORDER JOURNEY MODEL ───────────────────
+   Maps the sheet's date columns into an ordered list of milestones.
+   Each milestone: {key,label,icon,date}. A milestone is "done" when its
+   date exists; the first dated milestone after the last done one is the
+   "current" stage. Delivered/cancelled closes the journey.            */
+const JOURNEY = [
+  {key:"placed",   label:"Order received",      col:COL.orderDate,     icon:"cart"},
+  {key:"purchased",label:"Purchased from Amazon",col:COL.purchaseDate, icon:"card"},
+  {key:"usWh",     label:"Received at US warehouse",col:COL.deliveredDate,icon:"box"},
+  {key:"released", label:"Released for export",  col:COL.releasedDate,  icon:"unlock"},
+  {key:"toDubai",  label:"Shipped to Dubai",     col:COL.toDubai,       icon:"plane"},
+  {key:"recvDubai",label:"Received in Dubai",    col:COL.recvDubai,     icon:"pin"},
+  {key:"lastmile", label:"Out for delivery",     col:COL.lastMileDate,  icon:"truck"},
+  {key:"delivered",label:"Delivered to customer",col:null,             icon:"check"}
+];
+
+/** Compute per-order journey + health once, cache on the row object. */
+function computeJourney(row){
+  const status=(row[COL.status]||"").toLowerCase();
+  const isDelivered = status.includes("delivered to customer");
+  const isCancelled = status.includes("cancel");
+
+  const steps = JOURNEY.map(m=>{
+    let date=null;
+    if(m.key==="delivered"){
+      // delivered date = last mile date when status confirms delivery
+      date = isDelivered ? (parseDMY(row[COL.lastMileDate])||parseDMY(row[COL.shipDubai])) : null;
+    }else{
+      date = parseDMY(row[m.col]);
+    }
+    return {...m, date};
+  });
+
+  // find last completed index
+  let lastDone=-1;
+  steps.forEach((s,i)=>{ if(s.date) lastDone=i; });
+
+  // assign status to each step
+  steps.forEach((s,i)=>{
+    if(s.date) s.status="done";
+    else if(i===lastDone+1 && !isDelivered && !isCancelled) s.status="current";
+    else s.status="pending";
+  });
+
+  // delay flag on the current step if past latest ship date
+  const ship=parseDMY(row[COL.latestShip]);
+  const overdue = ship && today0()>ship && !isDelivered && !isCancelled;
+  if(overdue){
+    const cur=steps.find(s=>s.status==="current");
+    if(cur) cur.status="delayed";
+  }
+  return {steps, isDelivered, isCancelled, overdue, lastDone};
+}
+
+/* ───────────────────── DELAY / HEALTH ───────────────────────
+   Returns {level:'healthy'|'delayed'|'critical', reasons:[...]}.    */
+function computeHealth(row){
+  const status=(row[COL.status]||"").toLowerCase();
+  const reasons=[];
+  if(status.includes("delivered to customer")) return {level:"healthy",reasons:["Delivered"]};
+  if(status.includes("cancel")) return {level:"healthy",reasons:["Cancelled / closed"]};
+
+  // QC failure (India): cannot ship — surface the QC reason and flag critical
+  if(isQcFailed(row)){
+    return {level:"critical",reasons:["QC failed cannot ship: "+qcReason(row)]};
+  }
+
+  const ship=parseDMY(row[COL.latestShip]);
+  const t=today0();
+  let critical=false, delayed=false;
+
+  // 1) past latest ship date
+  if(ship && t>ship){ const od=daysBetween(ship,t); reasons.push(`${od}d past latest ship date`); od>5?critical=true:delayed=true; }
+
+  // 2) stuck — last known milestone date is old
+  const j=computeJourney(row);
+  const lastDated=[...j.steps].reverse().find(s=>s.date);
+  if(lastDated && lastDated.date){
+    const stuck=daysBetween(lastDated.date,t);
+    if(stuck>=STUCK_DAYS){ reasons.push(`No update for ${stuck}d`); stuck>14?critical=true:delayed=true; }
+  }
+
+  // 3) missing tracking — shipped to Dubai but no last-mile AWB
+  const shippedDubai=parseDMY(row[COL.shipDubai]);
+  if(shippedDubai && !(row[COL.selfAwb]||"").trim()){ reasons.push("Missing last-mile tracking"); delayed=true; }
+
+  // 4) procurement delay — ordered but not purchased after several days
+  const od=parseDMY(row[COL.orderDate]);
+  if(od && !(row[COL.purchaseDate]||"").trim() && !(row[COL.notProcured]||"").trim()){
+    const wait=daysBetween(od,t);
+    if(wait>=3){ reasons.push(`Not procured ${wait}d after order`); wait>7?critical=true:delayed=true; }
+  }
+
+  // 5) procurement failure (couldn't buy)
+  if((row[COL.notProcured]||"").trim() && !(row[COL.purchaseDate]||"").trim()){
+    reasons.push("Procurement issue: "+row[COL.notProcured]); critical=true;
+  }
+
+  if(critical) return {level:"critical",reasons};
+  if(delayed)  return {level:"delayed",reasons};
+  return {level:"healthy",reasons:["On track"]};
+}
+
+/* ─────────────────────────── SLA ───────────────────────────
+   Commitment (committed SLA) = committedDeliveryDate(E) − orderDate(C).
+   Actual delivery SLA        = actualDeliveryDate − orderDate(C), where the
+   actual delivery date is column V for US (Support) and column W for India
+   (Support_IN) — both normalised into COL.lastMileDate by the layout maps.
+   diff = actual − committed  ( <0 early · 0 on time · >0 late/breach ).
+   Returns null unless the order is delivered with all three dates present. */
+function computeSLA(row){
+  const status=(row[COL.status]||"").toLowerCase();
+  const lastMile=(row[COL.lastMile]||"").trim().toLowerCase();
+  const delivered = status.includes("delivered to customer") || lastMile==="delivered";
+  if(!delivered) return null;
+  const c=parseDMY(row[COL.orderDate]);       // C — order date
+  const e=parseDMY(row[COL.latestShip]);      // E — committed delivery date
+  const u=parseDMY(row[COL.lastMileDate]);    // V (US) / W (India) — actual delivery date
+  if(!(c&&e&&u)) return null;
+  const sla=daysBetween(c,e);      // committed SLA (days)
+  const actual=daysBetween(c,u);   // delivered SLA (days)
+  const diff=actual-sla;           // negative = early, 0 = on time, positive = late
+  const verdict = diff<0?"early":diff===0?"ontime":"late";
+  return {sla, actual, diff, verdict, cDate:c, eDate:e, uDate:u,
+          breached: diff>0, breachReason: verdict==="late"?slaBreachReason(row,diff):""};
+}
+
+/** Compact TAT forecast for an order — used in the order table and drawer so
+    tracking any order shows, up front, whether it is heading for a delay.
+    Combines the three delay sources into one predicted total-days figure and a
+    short verdict, regardless of whether the order is delivered yet.
+    Returns {days, level, label, tone} where
+      level: ontrack | listing | calendar | delay
+      tone:  ok | warn | bad                                                   */
+function tatForecast(row){
+  const t=row._tat;
+  if(!t) return {days:0, level:"none", label:"—", tone:"mute"};
+
+  // If already delivered, report the settled outcome, not a forecast.
+  if(t.isDelivered){
+    const lateBy = t.projectedSlip;   // for delivered orders projectedDelivery = actual
+    if(lateBy!=null && lateBy>0) return {days:lateBy, level:"delay", label:`Delivered +${lateBy}d late`, tone:"bad"};
+    return {days:0, level:"ontrack", label:"Delivered on time", tone:"ok"};
+  }
+
+  // "days late" is the LIVE projected slip — the single measure of how late the
+  // order will actually be. Stage overruns are the CAUSE (shown in the remark),
+  // not added on top, so we never double-count.
+  const liveLate = (t.willBreach && t.projectedSlip>0) ? t.projectedSlip : 0;
+  const stage    = t.totalStageDelay||0;
+
+  // On pace and won't miss → on track, unless the committed date itself was set
+  // too soon for even a normal run (a pure listing planning error).
+  if(liveLate<=0 && stage<=0){
+    if(t.listingError && t.listingGap>0){
+      return {days:t.listingGap, level:"listing", label:`Listing under-set ${t.listingGap}d`, tone:"bad"};
+    }
+    return {days:0, level:"ontrack", label:"On track", tone:"ok"};
+  }
+
+  // Running late: report the projected slip. Level reflects the dominant cause —
+  // an operational stage overrun (incl. late purchase / long EDD) vs a pure
+  // listing under-set with no operational miss.
+  const days = liveLate>0 ? liveLate : stage;
+  const level = stage>0 ? "delay" : (t.listingError ? "listing" : "calendar");
+  const label = stage>0 ? `Delayed +${days}d` : `Will breach +${days}d`;
+  return {days, level, label, tone:"bad"};
+}
+
+/** Auto-generated remark for an order — the one-line "why" that fills the
+    Remark column in Order details, the drawer, and the SLA table. Priority:
+      1) a real remark typed in the sheet (never overwrite the team's own note)
+      2) procurement / QC blockers
+      3) the TAT engine's own reason (stage overrun, listing error, calendar slip)
+    Returns "" only when the order is genuinely on track with no note.
+    The 12:00 cut-off is US-only; India/Dubai only have their weekly closed days. */
+function tatReason(row){
+  const manual=(row[COL.remark]||"").trim();
+  if(manual && manual.toLowerCase()!=="remark") return manual;
+
+  if((row[COL.notProcured]||"").trim() && !(row[COL.purchaseDate]||"").trim())
+    return "Procurement issue: "+row[COL.notProcured].trim();
+  if(isQcFailed(row)) return "QC failed cannot ship: "+qcReason(row);
+
+  const t=row._tat;
+  if(!t) return "";
+
+  const fmtd=d=>d?`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`:"—";
+
+  const purchaseStage = t.stages.find(s=>s.key==="order_to_purchase");
+  const eddStage      = t.stages.find(s=>s.key==="edd");
+  const over          = t.stages.filter(s=>s.delay!=null && s.delay>0).sort((a,b)=>b.delay-a.delay);
+
+  // Tolerances: a next-working-day purchase is normal (not a delay); a normal
+  // Amazon EDD is ~2 working days, so only flag EDD when it runs materially long.
+  const PURCHASE_TOL = 1;   // working days
+  const EDD_NORMAL   = 2;   // working days
+  const purchaseLate = purchaseStage && purchaseStage.actualDays!=null && purchaseStage.actualDays > PURCHASE_TOL;
+  const eddLate      = eddStage && eddStage.actualDays!=null && (eddStage.actualDays - EDD_NORMAL) >= 2;
+  const eddSlip      = eddLate ? eddStage.actualDays - EDD_NORMAL : 0;
+
+  // Build a list of candidate causes with their day-impact, pick the biggest.
+  const causes=[];
+  if(purchaseLate) causes.push({d:purchaseStage.actualDays-PURCHASE_TOL,
+    text:`Operational delay — not purchased promptly (ordered ${fmtd(t.cDate)}, purchased ${fmtd(purchaseStage.actualTo)}, +${purchaseStage.actualDays-PURCHASE_TOL}d beyond next-day). Not a listing error.`});
+  if(eddLate) causes.push({d:eddSlip,
+    text:`Amazon delay — Amazon EDD ${fmtd(eddStage.actualTo)} is ${eddSlip}d beyond a normal ${EDD_NORMAL}-day EDD (Amazon shipped slowly). Not a listing or ops error.`});
+  const opOver=over.filter(s=>s.key!=="order_to_purchase"&&s.key!=="edd");
+  opOver.forEach(s=>causes.push({d:s.delay,
+    text:`Operational delay — ${s.label} +${s.delay}d (real TAT ${s.expDays}d, took ${s.actualDays}d).`}));
+
+  if(causes.length){
+    causes.sort((a,b)=>b.d-a.d);
+    return causes[0].text;
+  }
+
+  // Delivered already, nothing overran → settled outcome.
+  if(t.isDelivered){
+    return (t.projectedSlip!=null && t.projectedSlip>0)
+      ? `Delivered ${t.projectedSlip}d after the committed date.`
+      : "";
+  }
+
+  // No operational cause → the committed date itself was set too soon for even a
+  // normal run: a genuine listing planning error.
+  if(t.listingError && t.listingGap>0){
+    return `⚠ Wrong calculation by listing team — committed date ${fmtd(t.eDate)} is ${t.listingGap}d too soon; even a normal ${t.src} run needs until ${fmtd(t.listingExpected)}. Push the committed date out by ${t.listingGap}d.`;
+  }
+
+  // Live breach from accumulated small slips, no single dominant cause.
+  if(t.willBreach && t.projectedSlip>0){
+    return `⚠ Running behind — projected to miss the committed ${fmtd(t.eDate)} by ${t.projectedSlip}d based on actual progress. Delivery expected around ${fmtd(t.projectedDelivery)}.`;
+  }
+
+  return "";
+}
+
+/** Human-readable reason an order breached its committed delivery SLA.
+    Old logic just picked the single biggest calendar gap between milestones —
+    that is wrong, because some stages are *budgeted* to take longer (e.g.
+    Release→Delivery is 4 days by design), so the widest gap is not the late one.
+    The correct measure is which stage overran its EXPECTED working-day budget.
+    We therefore drive the reason off the TAT engine (computeTAT), which compares
+    every stage's actual working days against its route budget and also catches
+    listing-team TAT errors and weekend/holiday calendar slip.                  */
+function slaBreachReason(row,diff){
+  const remark=(row[COL.remark]||"").trim();
+  if(remark) return remark;                                   // explicit note wins
+  if((row[COL.notProcured]||"").trim()) return "Procurement delay: "+row[COL.notProcured].trim();
+  if(isQcFailed(row)) return "QC hold: "+qcReason(row);
+
+  const t=row._tat||computeTAT(row);
+  const fmtd=d=>d?`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`:"—";
+  if(t){
+    const over=t.stages.filter(s=>s.delay!=null && s.delay>0).sort((a,b)=>b.delay-a.delay);
+    const purchaseStage=t.stages.find(s=>s.key==="order_to_purchase");
+    const eddStage=t.stages.find(s=>s.key==="edd");
+
+    // 1) not purchased same day → operational
+    if(purchaseStage && purchaseStage.delay>0){
+      return `Operational delay — not purchased same day (ordered ${fmtd(t.cDate)}, purchased ${fmtd(purchaseStage.actualTo)}, +${purchaseStage.delay}d). Not a listing error.`;
+    }
+    // 2) Amazon EDD ran long → Amazon's delay
+    if(eddStage && eddStage.actualTo && eddStage.actualDays!=null && eddStage.actualDays-2>=2){
+      return `Amazon delay — Amazon EDD ${fmtd(eddStage.actualTo)} is ${eddStage.actualDays-2}d beyond a normal 2-day EDD. Not a listing or ops error.`;
+    }
+    // 3) other logistics stages that overran the real TAT
+    const opOver=over.filter(s=>s.key!=="order_to_purchase"&&s.key!=="edd");
+    if(opOver.length){
+      const main=opOver.slice(0,2).map(s=>`${s.label} +${s.delay}d (real TAT ${s.expDays}d, took ${s.actualDays}d)`).join("; ");
+      return "Operational delay — "+main+(opOver.length>2?` +${opOver.length-2} more stage(s)`:"")+".";
+    }
+    // 4) no operational cause → the committed date itself was set too soon
+    if(t.listingError && t.listingGap>0){
+      return `⚠ Wrong calculation by listing team — committed date ${fmtd(t.eDate)} was ${t.listingGap}d too soon; even a normal ${t.src} run needs until ${fmtd(t.listingExpected)}.`;
+    }
+  }
+  return `Delivered ${diff}d after committed date — reason not recorded`;
+}
+
+/* ══════════════════════════ TAT ENGINE ══════════════════════════
+   Turnaround-Time model. Builds the EXPECTED delivery an order SHOULD reach by
+   walking the ACTUAL business process from the order date (same-day purchase →
+   Amazon EDD → fixed logistics), respecting each office's closed days:
+       • US warehouse closed Saturdays + Sundays (weekday delivery releases in
+         1 working day, so a Friday delivery releases Monday)
+       • India warehouse closed Sundays (weekday delivery releases same day)
+       • Dubai transit / last-mile legs run on plain calendar days
+   It then flags (a) LISTING-TEAM errors — a committed date earlier than the real
+   process can deliver — and (b) OPERATIONAL delays — a stage that took longer
+   than its real-process budget — and projects a live ETA from actual progress. */
+
+/* Office holiday predicates (true = office closed that day). */
+const OFFICE_CLOSED = {
+  US:    d => { const g=d.getDay(); return g===0||g===6; }, // Sat + Sun
+  India: d => d.getDay()===0,                               // Sun
+  Dubai: d => d.getDay()===0,                               // Sun
+};
+/** Add n WORKING days for a given office (skips that office's holidays).
+    n<=0 still rolls a date forward off a holiday to the next working day —
+    e.g. a step that "lands" on a closed Saturday/Sunday moves to Monday.   */
+function addWorkingDays(start, n, office){
+  const closed = OFFICE_CLOSED[office] || (()=>false);
+  let d = new Date(start.getFullYear(),start.getMonth(),start.getDate());
+  if(n<=0){ while(closed(d)) d.setDate(d.getDate()+1); return d; }
+  let added=0;
+  while(added<n){ d.setDate(d.getDate()+1); if(!closed(d)) added++; }
+  return d;
+}
+/** Count WORKING days between two dates for an office (used for actuals). */
+function workingDaysBetween(a, b, office){
+  if(!a||!b) return null;
+  const closed = OFFICE_CLOSED[office] || (()=>false);
+  let d = new Date(a.getFullYear(),a.getMonth(),a.getDate());
+  const end = new Date(b.getFullYear(),b.getMonth(),b.getDate());
+  if(end<d) return -workingDaysBetween(b,a,office);
+  let n=0;
+  while(d<end){ d.setDate(d.getDate()+1); if(!closed(d)) n++; }
+  return n;
+}
+
+/* ═══════════════ ACTUAL TAT MODEL (how the process really works) ═══════════════
+   This is the ground-truth timeline the business actually runs to. The listing
+   team's own day-count is compared against THIS to flag their wrong calculations.
+
+   US source (US warehouse closed Sat + Sun):
+     • Order → Purchase ............ SAME DAY (0 working days)
+     • Purchase → Amazon EDD ....... set by Amazon (no US deliveries Sat/Sun)
+     • Delivered to WH → Released .. 1 working day  (Fri delivery → Mon release)
+     • Released → reaches Dubai .... 2 days
+     • Dubai received → released ... 1 day
+     • Dubai released → consignee .. 3 days
+
+   India source (India warehouse closed Sun):
+     • Order → Purchase ............ SAME DAY (0 working days)
+     • Purchase → Amazon EDD ....... set by Amazon (no IN deliveries Sun)
+     • Delivered to WH → Released .. SAME DAY (0 working days)
+     • Released → reaches Dubai .... 2 days
+     • Dubai received → released ... 1 day
+     • Dubai released → consignee .. 3 days
+
+   Each stage names the office calendar that governs its working-day math and the
+   two ACTUAL milestone columns (from → to) used to measure what really happened.
+   The Amazon-EDD leg is not a fixed budget; it is whatever Amazon commits, so the
+   expected schedule uses the order's real Amazon EDD date when present.          */
+const TAT_ROUTE = {
+  US: {
+    // fixed logistics AFTER Amazon EDD, in the units each stage is measured in:
+    // release 1 (US working day) + to-Dubai 2 + Dubai-release 1 + last-mile 3 = 7
+    fixedTotal: 0+1+2+1+3,
+    stages:[
+      {key:"order_to_purchase", label:"Order → Purchase",               days:0, office:"US",    from:COL.orderDate,     to:COL.purchaseDate},
+      {key:"edd",               label:"Purchase → Amazon EDD",          days:null, office:"US",  from:COL.purchaseDate,  to:COL.amazonEta, isEDD:true},
+      {key:"wh_to_release",     label:"Delivered to WH → Released",     days:1, office:"US",    from:COL.deliveredDate, to:COL.releasedDate},
+      {key:"release_to_dubai",  label:"Released → Reaches Dubai",       days:2, office:"none",  from:COL.releasedDate,  to:COL.recvDubai},
+      {key:"dubai_release",     label:"Dubai received → released",      days:1, office:"none",  from:COL.recvDubai,     to:COL.shipDubai},
+      {key:"last_mile",         label:"Dubai released → consignee",     days:3, office:"none",  from:COL.shipDubai,     to:COL.lastMileDate},
+    ],
+  },
+  India: {
+    // release 0 (same day) + to-Dubai 2 + Dubai-release 1 + last-mile 3 = 6
+    fixedTotal: 0+0+2+1+3,
+    stages:[
+      {key:"order_to_purchase", label:"Order → Purchase",               days:0, office:"India", from:COL.orderDate,     to:COL.purchaseDate},
+      {key:"edd",               label:"Purchase → Amazon EDD",          days:null, office:"India", from:COL.purchaseDate, to:COL.amazonEta, isEDD:true},
+      {key:"wh_to_release",     label:"Delivered to WH → Released",     days:0, office:"India", from:COL.deliveredDate, to:COL.releasedDate},
+      {key:"release_to_dubai",  label:"Released → Reaches Dubai",       days:2, office:"none",  from:COL.releasedDate,  to:COL.recvDubai},
+      {key:"dubai_release",     label:"Dubai received → released",      days:1, office:"none",  from:COL.recvDubai,     to:COL.shipDubai},
+      {key:"last_mile",         label:"Dubai released → consignee",     days:3, office:"none",  from:COL.shipDubai,     to:COL.lastMileDate},
+    ],
+  },
+};
+const routeKey = row => row[COL.source]==="India" ? "India" : "US";
+
+/* Compute the whole TAT picture for one order. Cached on the row as _tat.
+   Returns null only when there is no order date to anchor the schedule.
+
+   Model: the EXPECTED delivery is built from the ACTUAL process (same-day
+   purchase → Amazon EDD → fixed logistics). Amazon's EDD is taken from the real
+   Amazon EDD date on the order when present; otherwise a small default is used.
+   The listing team's committed date (latest ship, E) is then compared against
+   this expected delivery — when E is EARLIER than what the real process can
+   achieve, that is a WRONG CALCULATION BY THE LISTING TEAM (they promised sooner
+   than the process allows). A live projection from actual milestones is also
+   computed so an in-flight order is judged on where it really is.               */
+function computeTAT(row){
+  const src = routeKey(row);
+  const R   = TAT_ROUTE[src];
+  const C   = parseDMY(row[COL.orderDate]);          // order date (anchor)
+  const E   = parseDMY(row[COL.latestShip]);         // listing team's committed date
+  if(!C) return null;
+
+  // committed TAT (calendar days) = what the listing team allowed, for reference.
+  const committedTAT = E ? daysBetween(C,E) : null;
+
+  // Amazon EDD has TWO roles that must not be confused:
+  //  • ACTUAL EDD (from the sheet) — what Amazon really committed for THIS order.
+  //    Used to project the real delivery and to measure Amazon/operational delay.
+  //  • STANDARD EDD — a normal EDD the listing team could reasonably assume at
+  //    listing time. Used ONLY to judge whether the committed date was feasible.
+  //    The listing team is NOT responsible for Amazon shipping late, so their
+  //    "error" must be judged against a normal EDD, not this order's actual one.
+  const purchaseActual = parseDMY(row[COL.purchaseDate]) || C;   // same-day purchase
+  const eddActual      = parseDMY(row[COL.amazonEta]);
+  const STANDARD_EDD_DAYS = 2;                                   // normal Amazon EDD
+  // working days the actual EDD represents (purchase → EDD), for delay measurement
+  const eddActualDays = eddActual ? Math.max(0, workingDaysBetween(purchaseActual, eddActual, "none")) : null;
+  const edd = eddActualDays!=null ? eddActualDays : STANDARD_EDD_DAYS;
+
+  // Build the EXPECTED schedule by walking the actual-process stages from the
+  // order date. The EDD leg anchors to the REAL EDD date when present, so the
+  // downstream projection reflects reality (Amazon delay included).
+  let cursor = new Date(C);
+  const stages = R.stages.map(st=>{
+    const n = st.isEDD ? edd : st.days;
+    const expFrom = new Date(cursor);
+    let expTo;
+    if(st.isEDD && eddActual){ expTo = new Date(eddActual); }   // anchor to real EDD
+    else { expTo = addWorkingDays(cursor, n, st.office); }
+    cursor = expTo;
+
+    // actual dates from the sheet for this stage
+    const aFrom = parseDMY(row[st.from]);
+    const aTo   = parseDMY(row[st.to]);
+    const actualDays = (aFrom&&aTo) ? workingDaysBetween(aFrom,aTo,st.office) : null;
+
+    // delay for this stage = actual days − expected days (on that stage's calendar),
+    // with tolerances so normal variation is not flagged:
+    //  • purchase: a next-working-day purchase is normal → tolerate 1 day
+    //  • EDD: this leg is Amazon's, not ours — never counted as an operational
+    //    stage delay here (Amazon-long EDD is surfaced separately in the remark)
+    let delay = (actualDays!=null) ? actualDays - n : null;
+    if(delay!=null){
+      if(st.key==="order_to_purchase") delay = Math.max(0, actualDays - 1) > 0 ? actualDays - 1 : 0;
+      else if(st.isEDD)                delay = 0;   // Amazon's leg, not an ops delay
+    }
+    return {
+      ...st, expDays:n, expFrom, expTo,
+      actualFrom:aFrom, actualTo:aTo, actualDays, delay,
+      done: !!aTo,
+    };
+  });
+  const expectedDelivery = cursor;                    // reality-anchored (incl. Amazon)
+
+  // ── LISTING FEASIBILITY (independent of Amazon / operations) ──────────────
+  // What SHOULD the listing team have planned for? Order date + same-day purchase
+  // + a STANDARD Amazon EDD + the fixed logistics, all on the proper calendars.
+  // If the committed date is earlier than THIS, the listing team under-set the
+  // TAT at listing time — a genuine listing error they own.
+  let lc = new Date(C);
+  for(const st of R.stages){
+    const n = st.isEDD ? STANDARD_EDD_DAYS : st.days;
+    lc = addWorkingDays(lc, n, st.office);
+  }
+  const listingExpected = lc;                         // feasible date at listing time
+  const listingGap  = E ? daysBetween(E, listingExpected) : 0;  // >0 = committed too soon
+  const listingError = listingGap > 0;
+
+  // calendarSlip retained for compatibility: committed vs reality-anchored expected.
+  let calendarSlip = null;
+  if(E){ calendarSlip = daysBetween(E, expectedDelivery); }
+
+  // ── LIVE PROJECTION ──────────────────────────────────────────────────────
+  // Re-project delivery from where the order ACTUALLY is. Use each stage's real
+  // "to" date when present; project the remaining stages forward from the last
+  // real date reached. An order running ahead of pace is judged on-time.
+  let liveCursor=null;
+  for(const st of stages){ if(st.actualTo){ liveCursor=st.actualTo; } }
+  if(!liveCursor) liveCursor=new Date(C);
+  let projCursor=new Date(liveCursor);
+  for(let i=0;i<stages.length;i++){
+    const st=stages[i];
+    if(st.actualTo){ continue; }           // already done — its real date stands
+    const n = st.expDays;
+    projCursor = addWorkingDays(projCursor, n, st.office);
+  }
+  const projectedDelivery = projCursor;    // realistic ETA given actual progress
+  // Live breach = will the order (as it's actually moving) miss the committed date?
+  const projectedSlip = E ? daysBetween(E, projectedDelivery) : null; // >0 = will be late
+  const willBreach = projectedSlip!=null && projectedSlip>0;
+  const isDelivered = !!parseDMY(row[COL.lastMileDate]) &&
+                      (row[COL.status]||"").toLowerCase().includes("delivered to customer");
+
+  // Roll up actual delay across stages that have data.
+  const measured = stages.filter(s=>s.delay!=null);
+  const totalStageDelay = measured.reduce((s,x)=>s+Math.max(0,x.delay),0);
+  const worst = measured.filter(s=>s.delay>0).sort((a,b)=>b.delay-a.delay)[0] || null;
+
+  // Compose a plain-language comment: where + why + how much.
+  const comments = buildTATComments({row, src, committedTAT, edd,
+    listingError, listingGap, listingExpected, projectedSlip, projectedDelivery,
+    willBreach, isDelivered, stages, worst, expectedDelivery, eDate:E});
+
+  return {
+    src, committedTAT, edd, listingError, listingGap, listingExpected, fixedTotal:R.fixedTotal,
+    stages, expectedDelivery, projectedDelivery, calendarSlip, projectedSlip,
+    willBreach, isDelivered, totalStageDelay, worst, comments,
+    cDate:C, eDate:E,
+    // headline severity: flag a listing planning error, an order that will
+    // actually miss, or a stage that overran its real-process budget.
+    flagged: listingError || willBreach || totalStageDelay>0,
+  };
+}
+
+/* Human-readable delay comments for an order's TAT. Returns an array of
+   {stage,text,type} where type ∈ listing | delay | calendar | ok.            */
+function buildTATComments({row, src, committedTAT, edd, listingError, listingGap,
+                           listingExpected, projectedSlip, projectedDelivery, willBreach, isDelivered,
+                           stages, worst, expectedDelivery, eDate}){
+  const out=[];
+  const fmtd=d=>d?`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`:"—";
+
+  // 1) Per-stage operational delays — the REAL causes, shown first and clearly
+  //    attributed (late purchase, long Amazon EDD, or a logistics leg over budget).
+  stages.forEach(s=>{
+    if(s.delay!=null && s.delay>0){
+      let why="";
+      if(s.key==="order_to_purchase") why=" — not purchased same day (operational)";
+      else if(s.key==="edd")          why=" — Amazon shipped slower than a normal EDD (Amazon delay)";
+      else                            why=" — logistics leg over its real-process budget (operational)";
+      out.push({stage:s.label, type:"delay",
+        text:`${s.label}: real TAT allows ${s.expDays}d, actual took ${s.actualDays}d → ${s.delay}d over${why}.`});
+    }
+  });
+
+  // 2) LIVE projection — where the order will actually land given progress so far.
+  if(!isDelivered && willBreach && projectedSlip>0){
+    out.push({stage:"Projection", type:"calendar",
+      text:`Projected delivery ${fmtd(projectedDelivery)} — ${projectedSlip}d past the committed ${fmtd(eDate)} based on actual progress.`});
+  }
+
+  // 3) LISTING-TEAM error — ONLY a real planning mistake: the committed date was
+  //    set earlier than even a normal run (standard EDD + fixed logistics) allows.
+  //    This is independent of Amazon/operational delays above.
+  if(listingError && listingGap>0){
+    out.push({stage:"Listing calculation", type:"listing",
+      text:`Wrong calculation by listing team — committed date ${fmtd(eDate)} is ${listingGap}d too soon; even a normal ${src} run needs until ${fmtd(listingExpected)}. Push the committed date out by ${listingGap}d.`});
+  }
+
+  if(!out.length) out.push({stage:"—", type:"ok",
+    text:"On track — matches the actual process and within the committed date."});
+  return out;
+}
+
+/** Searchable haystack for an order, cached on first build. */
+function haystack(row){
+  if(row._hay) return row._hay;
+  row._hay = [COL.orderId,COL.sku,COL.product,COL.awb,COL.selfAwb,COL.asin,COL.itemId,COL.source,COL.qcStatus]
+    .map(i=>(row[i]||"")).join(" ").toLowerCase();
+  return row._hay;
+}
+
+/* ═══════════════════════════ LOAD ═══════════════════════════
+   Fetches every configured source in parallel, normalizes each source's
+   rows into the canonical COL shape, tags them with their source, and
+   merges into one DATA array. A source with an unfilled gid is skipped
+   gracefully so the dashboard still works with whatever is available.   */
+function fetchSource(source){
+  return new Promise(resolve=>{
+    if(!source.gid || /PASTE_/.test(source.gid)){
+      resolve({source, rows:[], skipped:true, err:"No gid configured"});
+      return;
+    }
+    Papa.parse(csvUrl(source.gid),{
+      download:true, skipEmptyLines:true,
+      complete:res=>{
+        const raw=res.data||[];
+        const rows=raw.slice(1)
+          .filter(r=>r[0] && (""+r[0]).trim())
+          .map(r=>normalizeRow(r, source));
+        resolve({source, rows});
+      },
+      error:err=>resolve({source, rows:[], err:err&&err.message||"fetch failed"})
+    });
+  });
+}
+
+function load(){
+  $("#syncTxt").textContent="Syncing…";
+  $("#liveDot").style.background="var(--warn)";
+  Promise.all(SOURCES.map(fetchSource)).then(results=>{
+    const merged=[];
+    const notes=[];
+    results.forEach(r=>{
+      if(r.rows.length) merged.push(...r.rows);
+      if(r.skipped) notes.push(`${r.source.label}: add its gid in SOURCES to include it`);
+      else if(r.err) notes.push(`${r.source.label}: ${r.err}`);
+    });
+
+    if(!merged.length){
+      showError("No rows loaded from any source. "+(notes.join(" · ")||"Check that the sheet is shared as “Anyone with the link · Viewer.”"));
+      return;
+    }
+
+    DATA=merged.filter(r=>r[COL.orderId] && (""+r[COL.orderId]).trim());
+    // Pre-compute derived fields once (performance for large datasets)
+    DATA.forEach(r=>{
+      r._od=parseDMY(r[COL.orderDate]);
+      r._ship=parseDMY(r[COL.latestShip]);
+      r._state=deriveState(r);
+      r._health=computeHealth(r);
+      r._tat=computeTAT(r);
+      r._sla=computeSLA(r);
+      r._hay=null; haystack(r);
+    });
+
+    $("#liveDot").style.background="var(--ok)";
+    const loaded=results.filter(r=>r.rows.length).map(r=>r.source.label).join(" + ")||"—";
+    $("#syncTxt").textContent="Updated "+new Date().toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit"});
+    $("#sheetLink").href=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit#gid=${GID}`;
+    // surface any skipped/errored source under the header, non-blocking
+    const warnEl=$("#srcWarn");
+    if(warnEl) warnEl.textContent = notes.length ? ("Loaded: "+loaded+". "+notes.join(" · ")) : "";
+    initFilters();
+    wireTabs();
+    buildAdvancedFilters();
+    apply();
+  });
+}
+
+function showError(msg){
+  $("#liveDot").style.background="var(--bad)";
+  $("#syncTxt").textContent="Sync failed";
+  $("#content").innerHTML=`
+    <div class="error">
+      <h3>Couldn't load the sheet</h3>
+      <p>${esc(msg)}<br><br>Make sure the Google Sheet is shared as <strong>"Anyone with the link · Viewer"</strong>. The dashboard reads it through the public CSV export endpoint.</p>
+      <p><code>${esc(CSV_URL)}</code></p>
+    </div>`;
+}
+
+/* ═══════════════════════════ FILTERS ═══════════════════════════ */
+function initFilters(){
+  $("#filterBar").style.display="flex";
+  const dates=DATA.map(r=>r._od).filter(Boolean).sort((a,b)=>a-b);
+  if(dates.length){ $("#dFrom").value=toISO(dates[0]); $("#dTo").value=toISO(dates[dates.length-1]); }
+
+  // Source filter — wire buttons once. Counts are refreshed on every apply()
+  // by updateSourceChips() so they reflect the active date/search filters
+  // (matching the KPIs), not the all-time totals.
+  const srcSeg=$("#sourceSeg");
+  if(srcSeg){
+    srcSeg.querySelectorAll("button").forEach(b=>{
+      b.onclick=()=>{
+        srcSeg.querySelectorAll("button").forEach(x=>x.classList.remove("on"));
+        b.classList.add("on"); sourceFilter=b.dataset.src; tblPage=1; apply();
+      };
+    });
+  }
+  updateSourceChips();
+
+  $("#dateMode").querySelectorAll("button").forEach(b=>{
+    b.onclick=()=>{
+      $("#dateMode").querySelectorAll("button").forEach(x=>x.classList.remove("on"));
+      b.classList.add("on"); dateMode=b.dataset.mode;
+      $("#dateModeLbl").textContent="Date range · "+(dateMode==="order"?"Order date":"Latest ship date");
+      apply();
+    };
+  });
+  $("#quickRanges").querySelectorAll("button").forEach(b=>{
+    b.onclick=()=>{
+      $("#quickRanges").querySelectorAll("button").forEach(x=>x.classList.remove("on"));
+      b.classList.add("on"); quickDays=+b.dataset.days;
+      if(quickDays>0){
+        const to=new Date(), from=new Date(); from.setDate(from.getDate()-quickDays);
+        $("#dFrom").value=toISO(from); $("#dTo").value=toISO(to);
+      }else if(dates.length){
+        $("#dFrom").value=toISO(dates[0]); $("#dTo").value=toISO(dates[dates.length-1]);
+      }
+      apply();
+    };
+  });
+  $("#dFrom").onchange=$("#dTo").onchange=()=>{
+    $("#quickRanges").querySelectorAll("button").forEach(x=>x.classList.remove("on"));
+    apply();
+  };
+  $("#clearBtn").onclick=resetAll;
+  $("#advBtn").onclick=()=>{ $("#advBtn").classList.toggle("open"); $("#advPanel").classList.toggle("open"); };
+}
+
+function resetAll(){
+  const dates=DATA.map(r=>r._od).filter(Boolean).sort((a,b)=>a-b);
+  if(dates.length){ $("#dFrom").value=toISO(dates[0]); $("#dTo").value=toISO(dates[dates.length-1]); }
+  $("#quickRanges").querySelectorAll("button").forEach(x=>x.classList.remove("on"));
+  $("#quickRanges").querySelector('[data-days="0"]').classList.add("on");
+  quickDays=0; tblStateFilter=""; tblPage=1;
+  sourceFilter="all";
+  const srcSeg=$("#sourceSeg");
+  if(srcSeg){ srcSeg.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x.dataset.src==="all")); }
+  advStatusSel.clear(); advStateSel.clear(); advAwb=""; tgDelayed=tgInv=tgProcFail=false;
+  attnFilter="";
+  globalQuery=""; $("#globalSearch").value="";
+  buildAdvancedFilters();
+  apply();
+}
+
+/** Build the multi-select lists in the advanced panel from live data. */
+function buildAdvancedFilters(){
+  // states
+  const stateCounts={open:0,closed:0,danger:0};
+  DATA.forEach(r=>stateCounts[r._state]++);
+  $("#msState").innerHTML=["open","closed","danger"].map(s=>`
+    <label class="ms-item"><input type="checkbox" data-state="${s}" ${advStateSel.has(s)?"checked":""}>
+      ${s[0].toUpperCase()+s.slice(1)}<span class="ct">${stateCounts[s]}</span></label>`).join("");
+  $("#msState").querySelectorAll("input").forEach(c=>c.onchange=()=>{
+    c.checked?advStateSel.add(c.dataset.state):advStateSel.delete(c.dataset.state); apply();
+  });
+
+  // statuses (top 12 by frequency)
+  const sc={};
+  DATA.forEach(r=>{ const s=(r[COL.status]||"—").trim()||"—"; sc[s]=(sc[s]||0)+1; });
+  const top=Object.entries(sc).sort((a,b)=>b[1]-a[1]).slice(0,12);
+  $("#msStatus").innerHTML=top.map(([s,n])=>`
+    <label class="ms-item"><input type="checkbox" data-status="${esc(s)}" ${advStatusSel.has(s)?"checked":""}>
+      <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(s)}</span><span class="ct">${n}</span></label>`).join("");
+  $("#msStatus").querySelectorAll("input").forEach(c=>c.onchange=()=>{
+    c.checked?advStatusSel.add(c.dataset.status):advStatusSel.delete(c.dataset.status); apply();
+  });
+
+  // awb + toggles
+  const awbEl=$("#awbFilter"); awbEl.value=advAwb;
+  awbEl.oninput=debounce(()=>{ advAwb=awbEl.value.trim(); apply(); },150);
+  const wire=(id,getter,setter)=>{
+    const el=$(id); el.classList.toggle("on",getter());
+    el.querySelector(".toggle").classList.toggle("on",getter());
+    el.onclick=()=>{ setter(!getter()); el.querySelector(".toggle").classList.toggle("on",getter()); apply(); };
+  };
+  wire("#tgDelayed",()=>tgDelayed,v=>tgDelayed=v);
+  wire("#tgInv",()=>tgInv,v=>tgInv=v);
+  wire("#tgProcFail",()=>tgProcFail,v=>tgProcFail=v);
+}
+
+/** Master filter — applies date range + advanced filters + global search. */
+function apply(){
+  const from=mkLocal($("#dFrom").value,false);
+  const to=mkLocal($("#dTo").value,true);
+  const q=globalQuery.toLowerCase();
+
+  FILT=DATA.filter(r=>passesFilters(r,from,to,q,false));
+  render();
+  updateSourceChips();
+}
+
+/** Single source of truth for row filtering. When ignoreSource is true the
+    source selector is skipped — used to compute per-source chip counts that
+    still respect the date/search/advanced filters (so they match the KPIs). */
+function passesFilters(r,from,to,q,ignoreSource){
+  // source
+  if(!ignoreSource && sourceFilter!=="all" && r[COL.source]!==sourceFilter) return false;
+  // date range
+  const d=dateMode==="order"?r._od:r._ship;
+  if(from||to){ if(!d) return false; if(from&&d<from) return false; if(to&&d>to) return false; }
+  // advanced — state
+  if(advStateSel.size && !advStateSel.has(r._state)) return false;
+  // advanced — status
+  if(advStatusSel.size && !advStatusSel.has((r[COL.status]||"—").trim())) return false;
+  // advanced — awb
+  if(advAwb){ const a=advAwb.toLowerCase(); if(!((r[COL.awb]||"").toLowerCase().includes(a)||(r[COL.selfAwb]||"").toLowerCase().includes(a))) return false; }
+  // toggles
+  if(tgDelayed && r._health.level==="healthy") return false;
+  if(tgInv && (r[COL.isInv]||"").trim().toUpperCase()!=="YES") return false;
+  if(tgProcFail){ const ok=(r[COL.notProcured]||"").trim() && !(r[COL.purchaseDate]||"").trim(); if(!ok) return false; }
+  // attention-required quick filter (from the alert strip)
+  if(attnFilter && !attnMatch(r,attnFilter)) return false;
+  // global search
+  if(q && !haystack(r).includes(q)) return false;
+  return true;
+}
+
+/** Refresh source chip labels + counts. Counts respect the active date/search
+    filters but ignore the source selector itself, so choosing one source
+    doesn't zero the others. Totals reconcile with the KPIs. */
+function updateSourceChips(){
+  const srcSeg=$("#sourceSeg"); if(!srcSeg) return;
+  const from=mkLocal($("#dFrom").value,false), to=mkLocal($("#dTo").value,true);
+  const q=globalQuery.toLowerCase();
+  const base=DATA.filter(r=>passesFilters(r,from,to,q,true));
+  const counts={all:base.length,US:0,India:0};
+  base.forEach(r=>{ const s=r[COL.source]; if(s in counts) counts[s]++; });
+  srcSeg.querySelectorAll("button").forEach(b=>{
+    const s=b.dataset.src, n=s==="all"?counts.all:(counts[s]||0);
+    const flag=s==="US"?"🇺🇸 USA":s==="India"?"🇮🇳 India":"All";
+    b.innerHTML=`${flag} <span style="opacity:.6;font-variant-numeric:tabular-nums">${nf(n)}</span>`;
+    b.classList.toggle("on", s===sourceFilter);
+  });
+}
+
+/* Attention-strip predicate — mirrors the counts computed in render(). */
+let attnFilter="";
+function attnMatch(r,kind){
+  const s=(r[COL.status]||"").toLowerCase();
+  const j=computeJourney(r);
+  switch(kind){
+    case "procfail":  return (r[COL.notProcured]||"").trim() && !(r[COL.purchaseDate]||"").trim();
+    case "danger":    return r._state==="danger";
+    case "notrack":   return !j.isDelivered && !s.includes("cancel") && (r[COL.purchaseDate]||"").trim() && j.lastDone<=2;
+    case "critical":  return r._health.level==="critical";
+    case "noawb":     return j.lastDone>=5 && !j.isDelivered && !s.includes("cancel") && !(r[COL.selfAwb]||"").trim();
+    case "qc":        return isQcFailed(r);
+    default:          return true;
+  }
+}
+/** Activate an attention category as a filter and scroll to the table. */
+function applyAttn(kind){
+  attnFilter = attnFilter===kind ? "" : kind;
+  tblStateFilter=""; tblPage=1;
+  apply();
+  if(attnFilter){ const t=document.querySelector(".tbl-panel"); if(t) t.scrollIntoView({behavior:"smooth",block:"start"}); }
+}
+
+/* ═══════════════════════════ RENDER ═══════════════════════════ */
+function render(){
+  const total=FILT.length;
+  const delivered=FILT.filter(r=>(r[COL.status]||"").toLowerCase().includes("delivered to customer")).length;
+  const cancelled=FILT.filter(r=>(r[COL.status]||"").toLowerCase().includes("cancel")).length;
+  const notProc=FILT.filter(r=>{const s=(r[COL.status]||"").toLowerCase();return s.includes("cannot procure")||s.includes("not purchased");}).length;
+  const open=FILT.filter(r=>r._state==="open").length;
+  const danger=FILT.filter(r=>r._state==="danger").length;
+  const closed=FILT.filter(r=>r._state==="closed").length;
+  const qcFailed=FILT.filter(isQcFailed).length;
+  const effective=total-cancelled;
+  const delRate=pct(delivered,effective);
+
+  /* ── Value (AED) breakdowns — count & value by bucket ── */
+  const sumV = rows => rows.reduce((s,r)=>s+saleVal(r),0);
+  const rDelivered = FILT.filter(r=>(r[COL.status]||"").toLowerCase().includes("delivered to customer"));
+  const rDanger    = FILT.filter(r=>r._state==="danger");
+  const rOpen      = FILT.filter(r=>r._state==="open");
+  const rClosed    = FILT.filter(r=>r._state==="closed");
+  const rFailed    = FILT.filter(r=>{const s=(r[COL.status]||"").toLowerCase();return s.includes("cannot procure")||s.includes("not purchased");});
+  const rCancelled = FILT.filter(r=>(r[COL.status]||"").toLowerCase().includes("cancel"));
+  const vTotal=sumV(FILT), vDelivered=sumV(rDelivered), vDanger=sumV(rDanger),
+        vOpen=sumV(rOpen), vFailed=sumV(rFailed), vCancelled=sumV(rCancelled);
+  const valRows=[
+    ["Total received","var(--accent)",total,vTotal],
+    ["Delivered","var(--ok)",delivered,vDelivered],
+    ["Open","var(--accent2)",open,vOpen],
+    ["Danger","var(--bad)",danger,vDanger],
+    ["Failed / not procured","var(--warn)",notProc,vFailed],
+    ["Cancelled","var(--neutral)",cancelled,vCancelled],
+  ];
+
+  // analytics
+  const fulfilTimes=FILT.map(r=>{
+    const a=r._od, b=(r[COL.status]||"").toLowerCase().includes("delivered")?(parseDMY(r[COL.lastMileDate])||parseDMY(r[COL.shipDubai])):null;
+    return (a&&b)?daysBetween(a,b):null;
+  }).filter(v=>v!=null&&v>=0);
+  const avgFulfil=fulfilTimes.length?(fulfilTimes.reduce((s,v)=>s+v,0)/fulfilTimes.length):0;
+  const procAttempts=FILT.filter(r=>r._od).length;
+  const procFails=FILT.filter(r=>(r[COL.notProcured]||"").trim()&&!(r[COL.purchaseDate]||"").trim()).length;
+  const procFailPct=pct(procFails,procAttempts);
+  const critical=FILT.filter(r=>r._health.level==="critical").length;
+
+  /* ── In-transit & procurement-pending (existing journey/status logic) ── */
+  const inTransit=FILT.filter(r=>{
+    const j=computeJourney(r); return !j.isDelivered && j.lastDone>=4 &&
+      !(r[COL.status]||"").toLowerCase().includes("cancel");
+  }).length;
+  const procPending=FILT.filter(r=>{
+    const s=(r[COL.status]||"").toLowerCase();
+    return r._od && !(r[COL.purchaseDate]||"").trim() && !(r[COL.notProcured]||"").trim()
+      && !s.includes("cancel") && !s.includes("delivered");
+  }).length;
+
+  /* ── Attention Required categories (all from existing states/reasons) ── */
+  const aProcFail = procFails;
+  const aPastShip = danger;
+  const aNoTrack  = FILT.filter(r=>{
+    const j=computeJourney(r), s=(r[COL.status]||"").toLowerCase();
+    return !j.isDelivered && !s.includes("cancel") && (r[COL.purchaseDate]||"").trim() && j.lastDone<=2;
+  }).length;
+  const aCritDelay= FILT.filter(r=>r._health.level==="critical").length;
+  const aNoAwb    = FILT.filter(r=>{
+    const j=computeJourney(r), s=(r[COL.status]||"").toLowerCase();
+    return j.lastDone>=5 && !j.isDelivered && !s.includes("cancel") && !(r[COL.selfAwb]||"").trim();
+  }).length;
+  const aQc       = qcFailed;
+  // Distinct orders needing action: counted once if they trip ANY category.
+  // Reuses the same attnMatch predicates as the click-to-filter, so the total
+  // always reconciles with the KPIs (≤ Total orders) and with the filtered table.
+  const ATTN_KINDS=["procfail","danger","notrack","critical","noawb","qc"];
+  const attnTotal = FILT.filter(r=>ATTN_KINDS.some(k=>attnMatch(r,k))).length;
+
+  /* ── Source performance (US vs India) — same delivered/state logic ── */
+  const srcStat = key => {
+    const rows = key==="all"?FILT:FILT.filter(r=>r[COL.source]===key);
+    const t=rows.length;
+    const del=rows.filter(r=>(r[COL.status]||"").toLowerCase().includes("delivered to customer")).length;
+    const op=rows.filter(r=>r._state==="open").length;
+    const dg=rows.filter(r=>r._state==="danger").length;
+    const cn=rows.filter(r=>(r[COL.status]||"").toLowerCase().includes("cancel")).length;
+    return {t,del,op,dg,delRate:pct(del,Math.max(1,t-cn))};
+  };
+  const perfUS=srcStat("US"), perfIN=srcStat("India");
+
+  const attnMount=$("#attnMount");
+  if(attnMount){
+    const cat=(color,n,label,filterFn)=>`<button class="attn-card${attnFilter===filterFn?" on":""}" data-attn="${filterFn}" ${n?"":"disabled"} style="${attnFilter===filterFn?`border-color:${color};box-shadow:0 0 0 2px ${color}22`:""}">
+      <span class="dotbig" style="background:${color}"></span>
+      <span class="ac-txt"><span class="ac-n">${nf(n)}</span><span class="ac-l">${label}</span></span></button>`;
+    attnMount.innerHTML = attnTotal ? `
+      <div class="attn">
+        <div class="attn-h">
+          <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg></span>
+          <h3>Attention required</h3>
+          <span class="total" title="Distinct orders that trip at least one category. Categories can overlap, so they don't sum to this figure.">${nf(attnTotal)} orders need action</span>
+        </div>
+        <div class="attn-grid">
+          ${cat("var(--bad)",aProcFail,"Procurement failed","procfail")}
+          ${cat("var(--warn)",aPastShip,"Past latest ship date","danger")}
+          ${cat("var(--warn)",aNoTrack,"No tracking update","notrack")}
+          ${cat("var(--bad)",aCritDelay,"Critical delay","critical")}
+          ${cat("var(--warn)",aNoAwb,"Missing last-mile AWB","noawb")}
+          ${cat("var(--bad)",aQc,"QC failed · cannot ship","qc")}
+        </div>
+      </div>` : `
+      <div class="attn" style="border-left-color:var(--uae)">
+        <div class="attn-h"><span class="ico" style="background:var(--uae-g);color:var(--uae)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><h3>All clear</h3><span class="total" style="color:var(--uae);background:var(--uae-g)">No orders need action</span></div>
+      </div>`;
+    attnMount.querySelectorAll("button[data-attn]").forEach(b=>{ if(!b.disabled) b.onclick=()=>applyAttn(b.dataset.attn); });
+  }
+
+  $("#content").innerHTML=`
+    <div class="tabpane on" id="dashPane">
+    <div class="section-title">Operations overview</div>
+    <div class="kpi-grid">
+      ${kpiCard("Total orders","var(--amz)","var(--amz-g)",icBox(),nf(total),"All Amazon.ae orders")}
+      ${kpiCard("Open orders","var(--accent)","var(--accent-g)",icClock(),nf(open),"Within ship deadline")}
+      ${kpiCard("Delivered","var(--ok)","var(--ok-g)",icCheck(),nf(delivered),`<span class="badge g">${delRate}</span> success rate`)}
+      ${kpiCard("Delayed","var(--bad)","var(--bad-g)",icAlert(),nf(danger),`${pct(danger,total)} of total`)}
+      ${kpiCard("Procurement pending","var(--accent2)","var(--accent-g)",icCart(),nf(procPending),"Awaiting purchase")}
+      ${kpiCard("Procurement failed","var(--warn)","var(--warn-g)",icX(),nf(procFails),procFails?"Immediate action":"None outstanding")}
+      ${kpiCard("In transit","var(--inv)","var(--inv-g)",icTruck(),nf(inTransit),"Moving to customer")}
+      ${kpiCard("Critical","var(--bad)","var(--bad-g)",icBan(),nf(critical),"Need attention now")}
+    </div>
+
+    <div class="section-title">Procurement source performance</div>
+    <div class="src-grid">
+      ${srcCard("🇺🇸","USA","var(--accent)",perfUS)}
+      ${srcCard("🇮🇳","India","var(--inv)",perfIN)}
+    </div>
+
+    <div class="section-title">Sales value — AED (order value)</div>
+    <div class="kpi-grid">
+      ${kpiCard("Total order value","var(--accent)","var(--accent-g)",icBox(),aed(vTotal),`${nf(total)} orders received`)}
+      ${kpiCard("Delivered value","var(--ok)","var(--ok-g)",icCheck(),aed(vDelivered),`${nf(delivered)} orders · ${pct(vDelivered,vTotal)} of value`)}
+      ${kpiCard("Danger value","var(--bad)","var(--bad-g)",icAlert(),aed(vDanger),`${nf(danger)} orders at risk`)}
+      ${kpiCard("Failed value","var(--warn)","var(--warn-g)",icX(),aed(vFailed),`${nf(notProc)} not procured`)}
+    </div>
+    <div class="panel" style="margin-top:8px">
+      <div class="panel-h"><h2>Order count &amp; value by state</h2><span class="meta">AED · ${nf(total)} orders</span></div>
+      <div class="tbl-scroll">
+        <table style="min-width:0">
+          <thead><tr>
+            <th style="cursor:default">Bucket</th>
+            <th style="cursor:default;text-align:right">Order count</th>
+            <th style="cursor:default;text-align:right">% of orders</th>
+            <th style="cursor:default;text-align:right">Order value (AED)</th>
+            <th style="cursor:default;text-align:right">% of value</th>
+          </tr></thead>
+          <tbody>
+            ${valRows.map(([lbl,col,c,v])=>`<tr>
+              <td><span class="st-tag" style="background:color-mix(in srgb,${col} 15%,transparent);color:${col}"><span class="sw" style="background:${col}"></span>${lbl}</span></td>
+              <td style="text-align:right;font-variant-numeric:tabular-nums">${nf(c)}</td>
+              <td style="text-align:right;font-variant-numeric:tabular-nums">${pct(c,total)}</td>
+              <td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:600">${aed(v)}</td>
+              <td style="text-align:right;font-variant-numeric:tabular-nums">${pct(v,vTotal)}</td>
+            </tr>`).join("")}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section-title">Performance</div>
+    <div class="kpi-grid">
+      ${kpiCard("Avg fulfilment","var(--accent)","var(--accent-g)",icClock(),avgFulfil.toFixed(1)+"d","Order → delivered")}
+      ${kpiCard("Delivery success","var(--ok)","var(--ok-g)",icCheck(),delRate,`${nf(delivered)} of ${nf(effective)} effective`)}
+      ${kpiCard("Procurement fail %","var(--warn)","var(--warn-g)",icX(),procFailPct,`${nf(procFails)} couldn't be bought`)}
+      ${kpiCard("Critical orders","var(--bad)","var(--bad-g)",icAlert(),nf(critical),"Need attention now")}
+    </div>
+
+    <div class="section-title">Breakdown</div>
+    <div class="row2">
+      <div class="panel">
+        <div class="panel-h"><h2>Status breakdown</h2><span class="meta">${nf(total)} orders</span></div>
+        <div class="bars" id="statusBars"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-h"><h2>Order state</h2><span class="meta">Open · Closed · Danger</span></div>
+        <div class="donut-wrap"><div id="donut"></div>
+          <div class="legend">
+            ${legItem("var(--ok)","Closed",closed,total)}
+            ${legItem("var(--accent)","Open",open,total)}
+            ${legItem("var(--bad)","Danger",danger,total)}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">Procurement failure — reasons for non-procured orders</div>
+    <div class="panel" id="reasonPanel"></div>
+
+    <div class="section-title">QC failure — reasons “cannot ship” (India)</div>
+    <div class="panel" id="qcPanel"></div>
+
+    <div class="section-title">Pipeline &amp; volume</div>
+    <div class="row2">
+      <div class="panel">
+        <div class="panel-h"><h2>Orders by stage</h2><span class="meta">Where orders sit now</span></div>
+        <div class="funnel" id="funnel"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-h">
+          <h2>Order volume</h2>
+          <div class="vhead-seg" id="volMode">
+            <button data-v="day">Daily</button>
+            <button data-v="week" class="on">Weekly</button>
+            <button data-v="month">Monthly</button>
+          </div>
+        </div>
+        <div class="vchart" id="volChart"></div>
+      </div>
+    </div>
+
+    ${tablePanel()}
+    </div>
+
+    <div class="tabpane" id="slaPane">
+      <div class="section-title">Delivery SLA — committed vs delivered (order-wise + breach reasons)</div>
+      <div class="panel" id="slaPanel"></div>
+    </div>
+  `;
+  renderStatusBars();
+  renderDonut(closed,open,danger,total);
+  renderReasons();
+  renderQC();
+  renderSLA();
+  renderFunnel();
+  renderVolume("#volChart",volMode);
+  $("#volMode").querySelectorAll("button").forEach(b=>b.onclick=()=>{
+    $("#volMode").querySelectorAll("button").forEach(x=>x.classList.remove("on"));
+    b.classList.add("on"); volMode=b.dataset.v; renderVolume("#volChart",volMode);
+  });
+  wireTable();
+  renderTable();
+
+  // keep whichever tab was active before this re-render, and refresh the SLA count
+  const delN=FILT.filter(r=>r._sla).length;
+  const cntEl=$("#slaTabCount"); if(cntEl) cntEl.textContent=nf(delN);
+  applyActiveTab();
+}
+
+function kpiCard(lbl,bar,icbg,ic,val,sub){
+  return `<div class="kpi" style="--bar:${bar}">
+    <div class="top"><span class="lbl">${lbl}</span><span class="ic" style="--ic:${bar};--ic-bg:${icbg}">${ic}</span></div>
+    <div class="val">${val}</div><div class="sub">${sub}</div></div>`;
+}
+
+/* ─────────────────────────── TABS ─────────────────────────── */
+/** Show whichever pane matches activeTab; re-render the SLA pane on demand. */
+function applyActiveTab(){
+  const bar=$("#tabbar"); if(bar) bar.style.display="flex";
+  document.querySelectorAll("#tabbar button").forEach(b=>b.classList.toggle("on",b.dataset.tab===activeTab));
+  const dash=$("#dashPane"), sla=$("#slaPane");
+  if(dash) dash.classList.toggle("on",activeTab==="dash");
+  if(sla)  sla.classList.toggle("on",activeTab==="sla");
+}
+function wireTabs(){
+  const bar=$("#tabbar"); if(!bar) return;
+  bar.querySelectorAll("button").forEach(b=>b.onclick=()=>{ activeTab=b.dataset.tab; applyActiveTab(); });
+}
+/** Source performance comparison card (US / India). */
+function srcCard(flag,name,accent,p){
+  return `<div class="src-card" style="--sc-accent:${accent}">
+    <div class="src-card-h">
+      <span class="sflag">${flag}</span>
+      <div><div class="scap">Procurement source</div><div class="snm">${name}</div></div>
+      <div class="stot"><div class="n">${nf(p.t)}</div><div class="l">Orders</div></div>
+    </div>
+    <div class="src-metrics">
+      <div class="src-metric"><div class="mv" style="color:var(--accent)">${nf(p.op)}</div><div class="ml">Open</div></div>
+      <div class="src-metric"><div class="mv" style="color:var(--bad)">${nf(p.dg)}</div><div class="ml">Delayed</div></div>
+      <div class="src-metric"><div class="mv" style="color:var(--ok)">${nf(p.del)}</div><div class="ml">Delivered</div></div>
+    </div>
+    <div class="src-delbar">
+      <div class="sd-top"><span>Delivery rate</span><span class="pct">${p.delRate}</span></div>
+      <div class="src-track"><div class="src-fill" style="width:${p.delRate}"></div></div>
+    </div>
+  </div>`;
+}
+function legItem(c,lbl,v,t){
+  return `<div class="leg-item"><span class="sw" style="background:${c}"></span><span class="lt">${lbl}</span><span class="lv">${nf(v)} · ${pct(v,t)}</span></div>`;
+}
+
+/* status color shared by bars/log */
+function statusColor(s){
+  s=s.toLowerCase();
+  if(s.includes("delivered to customer")) return "var(--ok)";
+  if(s.includes("cancel")) return "var(--neutral)";
+  if(s.includes("cannot procure")||s.includes("not purchased")) return "var(--warn)";
+  if(s.includes("delay")||s.includes("held")) return "var(--bad)";
+  if(s.includes("transit")) return "var(--accent)";
+  if(s.includes("inventory")) return "var(--inv)";
+  return "var(--accent2)";
+}
+
+function renderStatusBars(){
+  const counts={};
+  FILT.forEach(r=>{ const s=(r[COL.status]||"—").trim()||"—"; counts[s]=(counts[s]||0)+1; });
+  const entries=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,9);
+  const max=entries.length?entries[0][1]:1;
+  $("#statusBars").innerHTML=entries.map(([name,n])=>`
+    <div class="bar-row">
+      <div class="bar-top">
+        <div class="bar-name"><span class="sw" style="background:${statusColor(name)}"></span><span title="${esc(name)}">${esc(name)}</span></div>
+        <div class="bar-nums">${nf(n)}<em>${pct(n,FILT.length)}</em></div>
+      </div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(n/max*100).toFixed(1)}%;background:${statusColor(name)}"></div></div>
+    </div>`).join("") || `<p style="color:var(--mute);font-size:13px">No orders in range.</p>`;
+}
+
+function renderDonut(closed,open,danger,total){
+  const size=148,sw=22,r=(size-sw)/2,c=2*Math.PI*r;
+  const segs=[["var(--ok)",closed],["var(--accent)",open],["var(--bad)",danger]];
+  let off=0;
+  const circles=segs.map(([col,v])=>{
+    const len=(total?v/total:0)*c;
+    const el=`<circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${col}" stroke-width="${sw}" stroke-dasharray="${len} ${c-len}" stroke-dashoffset="${-off}" transform="rotate(-90 ${size/2} ${size/2})"/>`;
+    off+=len; return el;
+  }).join("");
+  $("#donut").innerHTML=`<div class="donut" style="width:${size}px;height:${size}px">
+    <svg width="${size}" height="${size}">
+      <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="var(--panel2)" stroke-width="${sw}"/>${circles}
+    </svg>
+    <div class="ctr"><span class="big">${pct(closed,total).replace("%","")}<span style="font-size:16px">%</span></span><span class="cap">Closed</span></div>
+  </div>`;
+}
+
+/** Procurement-failure reasons: count & AED value per reason, from the
+    "Non Procured reason / issue" column. */
+function renderReasons(){
+  const map={};
+  FILT.forEach(r=>{
+    let reason=(r[COL.notProcured]||"").trim();
+    if(!reason || reason.toLowerCase()==="non procured reason / issue") return;
+    if(reason.toLowerCase()==="delivered") return;   // this col also carries a "Delivered" flag on some rows
+    (map[reason]=map[reason]||{n:0,v:0}); map[reason].n++; map[reason].v+=saleVal(r);
+  });
+  const rows=Object.entries(map).map(([k,o])=>({reason:k,n:o.n,v:o.v})).sort((a,b)=>b.n-a.n);
+  const totN=rows.reduce((s,r)=>s+r.n,0), totV=rows.reduce((s,r)=>s+r.v,0);
+  const el=$("#reasonPanel");
+  if(!rows.length){ el.innerHTML=`<div class="panel-h"><h2>No procurement failures in range</h2></div>`; return; }
+  const max=Math.max(...rows.map(r=>r.n));
+  el.innerHTML=`
+    <div class="panel-h"><h2>Reasons for non-procured</h2><span class="meta">${nf(totN)} orders · ${aed(totV)}</span></div>
+    <div class="bars">
+      ${rows.map(r=>`
+        <div class="bar-row">
+          <div class="bar-top">
+            <div class="bar-name"><span class="sw" style="background:var(--warn)"></span><span title="${esc(r.reason)}">${esc(r.reason)}</span></div>
+            <div class="bar-nums">${nf(r.n)}<em>${aed(r.v)}</em></div>
+          </div>
+          <div class="bar-track"><div class="bar-fill" style="width:${(r.n/max*100).toFixed(1)}%;background:linear-gradient(90deg,var(--warn),#E0A020)"></div></div>
+        </div>`).join("")}
+    </div>`;
+}
+
+/** QC-failure reasons (India): count & AED value per reason, from the
+    "Qc Status" column on orders whose Status = "QC failed cannot ship". */
+function renderQC(){
+  const map={};
+  FILT.forEach(r=>{
+    if(!isQcFailed(r)) return;
+    const reason=qcReason(r);
+    (map[reason]=map[reason]||{n:0,v:0}); map[reason].n++; map[reason].v+=saleVal(r);
+  });
+  const rows=Object.entries(map).map(([k,o])=>({reason:k,n:o.n,v:o.v})).sort((a,b)=>b.n-a.n);
+  const totN=rows.reduce((s,r)=>s+r.n,0), totV=rows.reduce((s,r)=>s+r.v,0);
+  const el=$("#qcPanel");
+  if(!rows.length){
+    el.innerHTML=`<div class="panel-h"><h2>No QC failures in range</h2><span class="meta">India orders only</span></div>`;
+    return;
+  }
+  const max=Math.max(...rows.map(r=>r.n));
+  el.innerHTML=`
+    <div class="panel-h"><h2>Reasons “QC failed cannot ship”</h2><span class="meta">${nf(totN)} orders · ${aed(totV)}</span></div>
+    <div class="bars">
+      ${rows.map(r=>`
+        <div class="bar-row">
+          <div class="bar-top">
+            <div class="bar-name"><span class="sw" style="background:var(--bad)"></span><span title="${esc(r.reason)}">${esc(r.reason)}</span></div>
+            <div class="bar-nums">${nf(r.n)}<em>${aed(r.v)}</em></div>
+          </div>
+          <div class="bar-track"><div class="bar-fill" style="width:${(r.n/max*100).toFixed(1)}%;background:linear-gradient(90deg,var(--bad),#C0392B)"></div></div>
+        </div>`).join("")}
+    </div>`;
+}
+
+/** SLA panel: Total / Delivered / Undelivered summary + order-wise table.
+    Respects the shared filter bar (source, date range, order-date vs
+    latest-ship-date mode, advanced filters, search) via FILT. */
+function renderSLA(){
+  const el=$("#slaPanel");
+  const total=FILT.length;
+  const isDeliveredRow=r=>{
+    const st=(r[COL.status]||"").toLowerCase();
+    const lm=(r[COL.lastMile]||"").trim().toLowerCase();
+    return st.includes("delivered to customer")||lm==="delivered";
+  };
+  const deliveredRows=FILT.filter(isDeliveredRow);
+  const delivered=deliveredRows.length;
+  const undelivered=total-delivered;
+
+  // measurable = delivered orders that also have all three dates (C, E, actual)
+  const slas=FILT.map(r=>r._sla).filter(Boolean);
+  const n=slas.length;
+
+  const early=slas.filter(v=>v.verdict==="early").length;
+  const ontime=slas.filter(v=>v.verdict==="ontime").length;
+  const late=slas.filter(v=>v.verdict==="late").length;
+  const avgSla   = n?slas.reduce((s,v)=>s+v.sla,0)/n:0;
+  const avgActual= n?slas.reduce((s,v)=>s+v.actual,0)/n:0;
+  const avgEarlyBy=(()=>{const e=slas.filter(v=>v.verdict==="early");return e.length?(e.reduce((s,v)=>s+Math.abs(v.diff),0)/e.length):0;})();
+  const avgLateBy =(()=>{const l=slas.filter(v=>v.verdict==="late"); return l.length?(l.reduce((s,v)=>s+v.diff,0)/l.length):0;})();
+  const metRate=n?pct(early+ontime,n):"0%";
+  const modeLbl = dateMode==="order" ? "Order-date filtered" : "Latest-ship-date filtered";
+
+  el.innerHTML=`
+    <div class="panel-h"><h2>Order summary</h2><span class="meta">${modeLbl} · ${nf(total)} orders in range</span></div>
+    <div class="kpi-grid" style="margin-bottom:20px">
+      ${kpiCard("Total orders","var(--amz)","var(--amz-g)",icBox(),nf(total),"All orders in current filter")}
+      ${kpiCard("Delivered","var(--ok)","var(--ok-g)",icCheck(),nf(delivered),`${pct(delivered,total)} of total`)}
+      ${kpiCard("Undelivered","var(--accent)","var(--accent-g)",icTruck(),nf(undelivered),`${pct(undelivered,total)} still in progress`)}
+      ${kpiCard("SLA measured","var(--inv)","var(--inv-g)",icClock(),nf(n),"Delivered with C, E &amp; actual dates")}
+    </div>
+
+    <div class="panel-h" style="margin-top:4px"><h2>Delivered within commitment</h2><span class="meta">${nf(n)} delivered orders measured</span></div>
+    <div class="sla-top">
+      <div class="sla-stat"><div class="sl-lbl">Avg committed SLA</div><div class="sl-val">${avgSla.toFixed(1)}d</div><div class="sl-sub">Committed date (E) − order date (C)</div></div>
+      <div class="sla-stat"><div class="sl-lbl">Avg delivered SLA</div><div class="sl-val">${avgActual.toFixed(1)}d</div><div class="sl-sub">Actual delivery − order date (C)</div></div>
+      <div class="sla-stat"><div class="sl-lbl">SLA met</div><div class="sl-val" style="color:var(--ok)">${metRate}</div><div class="sl-sub">Early or on time</div></div>
+      <div class="sla-stat"><div class="sl-lbl">Avg days early</div><div class="sl-val" style="color:var(--ok)">${avgEarlyBy.toFixed(1)}d</div><div class="sl-sub">When beating SLA</div></div>
+      <div class="sla-stat"><div class="sl-lbl">Avg days late</div><div class="sl-val" style="color:var(--bad)">${avgLateBy.toFixed(1)}d</div><div class="sl-sub">When past SLA</div></div>
+    </div>
+    <div class="sla-split">
+      <span class="seg-e" style="width:${n?(early/n*100).toFixed(1):0}%"></span>
+      <span class="seg-o" style="width:${n?(ontime/n*100).toFixed(1):0}%"></span>
+      <span class="seg-l" style="width:${n?(late/n*100).toFixed(1):0}%"></span>
+    </div>
+    <div class="sla-leg">
+      <div class="it"><span class="sw" style="background:var(--ok)"></span><span class="lt">Delivered early</span><span class="lv">${nf(early)} · ${pct(early,n)}</span></div>
+      <div class="it"><span class="sw" style="background:var(--accent)"></span><span class="lt">On time</span><span class="lv">${nf(ontime)} · ${pct(ontime,n)}</span></div>
+      <div class="it"><span class="sw" style="background:var(--bad)"></span><span class="lt">Delivered late</span><span class="lv">${nf(late)} · ${pct(late,n)}</span></div>
+    </div>
+
+    <div style="border-top:1px solid var(--line);margin:22px 0 0;padding-top:20px">
+      <div class="panel-h" style="margin-bottom:4px"><h2>Order-wise SLA</h2><span class="meta">Committed vs delivered · breach reason</span></div>
+      <div class="slaw-controls" id="slawChips">
+        <span class="chip ${slawFilter==='all'?'on':''}" data-f="all">All delivered <span class="cnt">${nf(n)}</span></span>
+        <span class="chip brk ${slawFilter==='breached'?'on':''}" data-f="breached">Breaching SLA <span class="cnt">${nf(late)}</span></span>
+        <span class="chip ${slawFilter==='met'?'on':''}" data-f="met">Met SLA <span class="cnt">${nf(early+ontime)}</span></span>
+        <button class="btn-dl" id="slawDl">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+          Export SLA CSV
+        </button>
+      </div>
+      <div class="tbl-scroll" style="max-height:520px" id="slawMount"></div>
+    </div>`;
+
+  renderSLATable();
+  $("#slawChips").querySelectorAll(".chip").forEach(c=>c.onclick=()=>{ slawFilter=c.dataset.f; renderSLA(); });
+  $("#slawDl").onclick=exportSLACSV;
+}
+
+/** Rows (with order + _sla) for the order-wise SLA table, honouring the chip filter. */
+function slaRows(){
+  let rows=FILT.filter(r=>r._sla);
+  if(slawFilter==="breached") rows=rows.filter(r=>r._sla.verdict==="late");
+  else if(slawFilter==="met") rows=rows.filter(r=>r._sla.verdict!=="late");
+  // breaches first (largest delay on top), then the rest by most recent order
+  return rows.sort((a,b)=>{
+    const ba=a._sla.verdict==="late", bb=b._sla.verdict==="late";
+    if(ba!==bb) return ba?-1:1;
+    if(ba&&bb) return b._sla.diff-a._sla.diff;
+    return (b._od||0)-(a._od||0);
+  });
+}
+
+/** The per-order committed/delivered/delay/reason table. */
+function renderSLATable(){
+  const rows=slaRows();
+  const mount=$("#slawMount");
+  if(!rows.length){ mount.innerHTML=`<p style="color:var(--mute);font-size:13px;padding:8px">No orders match this filter.</p>`; return; }
+  const verdictLabel={early:"Early",ontime:"On time",late:"Late"};
+  mount.innerHTML=`<table class="slaw-table">
+    <thead><tr>
+      <th>Order ID</th><th>Src</th><th>ASIN</th><th>SKU</th>
+      <th>Order date (C)</th><th>Committed (E)</th><th>Delivered</th>
+      <th style="text-align:right">Committed SLA</th><th style="text-align:right">Delivered SLA</th>
+      <th style="text-align:right">Delay</th><th>Verdict</th><th>Reason for breach</th>
+    </tr></thead><tbody>
+    ${rows.map(r=>{
+      const s=r._sla;
+      const src=r[COL.source]==="India"?"IN":r[COL.source]==="US"?"US":esc(r[COL.source]||"—");
+      const delayCell = s.diff>0 ? `+${s.diff}d` : s.diff<0 ? `${s.diff}d` : "0d";
+      const delayColor = s.diff>0 ? "var(--bad)" : s.diff<0 ? "var(--ok)" : "var(--mute2)";
+      const sku=(r[COL.sku]||"—").replace(/^USZ_/,"");
+      return `<tr data-i="${DATA.indexOf(r)}">
+        <td class="oid">${esc(r[COL.orderId]||"—")}</td>
+        <td><span class="slaw-src">${src}</span></td>
+        <td class="oid" style="color:var(--ink2)">${esc(r[COL.asin]||"—")}</td>
+        <td class="oid" style="color:var(--ink2)">${esc(sku)}</td>
+        <td class="num">${fmtD(s.cDate)}</td>
+        <td class="num">${fmtD(s.eDate)}</td>
+        <td class="num">${fmtD(s.uDate)}</td>
+        <td class="num">${s.sla}d</td>
+        <td class="num">${s.actual}d</td>
+        <td class="num" style="color:${delayColor};font-weight:700">${delayCell}</td>
+        <td><span class="slaw-v ${s.verdict}">${verdictLabel[s.verdict]}</span></td>
+        <td class="slaw-reason">${s.verdict==="late"?esc(s.breachReason):"—"}</td>
+      </tr>`;
+    }).join("")}
+    </tbody></table>`;
+  mount.querySelectorAll("tr[data-i]").forEach(tr=>tr.onclick=()=>openDrawer(DATA[+tr.dataset.i]));
+}
+
+/** Export the order-wise SLA breakdown (respects the active chip filter). */
+function exportSLACSV(){
+  const rows=slaRows();
+  const head=["Order ID","Source","ASIN","SKU","Order Date (C)","Committed Delivery Date (E)","Actual Delivery Date",
+              "Committed SLA (days)","Delivered SLA (days)","Delay (days)","Verdict","Reason for SLA breach"];
+  const lines=[head.join(",")];
+  rows.forEach(r=>{
+    const s=r._sla;
+    const sku=(r[COL.sku]||"").replace(/^USZ_/,"");
+    const cells=[r[COL.orderId], r[COL.source], r[COL.asin], sku, fmtD(s.cDate), fmtD(s.eDate), fmtD(s.uDate),
+      s.sla, s.actual, s.diff, s.verdict, s.verdict==="late"?s.breachReason:""];
+    lines.push(cells.map(c=>`"${(""+(c==null?"":c)).replace(/"/g,'""')}"`).join(","));
+  });
+  const blob=new Blob(["\ufeff"+lines.join("\n")],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob); a.download=`order_sla_${slawFilter}_${toISO(new Date())}.csv`; a.click();
+}
+
+/** Orders-by-stage funnel: count orders whose furthest milestone is each stage. */
+function renderFunnel(){
+  const stageCounts=JOURNEY.map(()=>0);
+  FILT.forEach(r=>{
+    const j=computeJourney(r);
+    let idx=j.isDelivered?JOURNEY.length-1:Math.max(0,j.lastDone);
+    stageCounts[idx]++;
+  });
+  const max=Math.max(1,...stageCounts);
+  const icons={cart:icCart(),card:icCard(),box:icBox(),unlock:icUnlock(),plane:icPlane(),pin:icPin(),truck:icTruck(),check:icCheck()};
+  const last=JOURNEY.length-1;
+  $("#funnel").innerHTML=JOURNEY.map((m,i)=>{
+    const grad = i===last
+      ? "linear-gradient(90deg,var(--uae),#0EA968)"
+      : i>=4 ? "linear-gradient(90deg,var(--amz),var(--amz2))"
+      : "linear-gradient(90deg,var(--accent),var(--accent2))";
+    return `
+    <div class="fn-row">
+      <div class="fn-lbl"><span class="fn-ic">${icons[m.icon]}</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${m.label}</span></div>
+      <div class="fn-track"><div class="fn-fill" style="width:${Math.max(stageCounts[i]/max*100,stageCounts[i]>0?2.5:0).toFixed(1)}%;background:${grad}"></div></div>
+      <div class="fn-val">${nf(stageCounts[i])}</div>
+    </div>`;}).join("");
+}
+
+/** Volume chart bucketed by day, week (Mon), or month. */
+function renderVolume(sel,mode){
+  const buckets={};
+  FILT.forEach(r=>{
+    if(!r._od) return;
+    let key,label;
+    if(mode==="day"){
+      key=toISO(r._od); label=`${String(r._od.getDate()).padStart(2,"0")}/${String(r._od.getMonth()+1).padStart(2,"0")}`;
+    }else if(mode==="week"){
+      const d=new Date(r._od); const day=(d.getDay()+6)%7; d.setDate(d.getDate()-day); // Monday
+      key=toISO(d); label=`${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}`;
+    }else{
+      key=`${r._od.getFullYear()}-${String(r._od.getMonth()+1).padStart(2,"0")}`;
+      label=r._od.toLocaleString("en-US",{month:"short",year:"2-digit"});
+    }
+    (buckets[key]=buckets[key]||{label,n:0}).n++;
+  });
+  const take=mode==="day"?30:mode==="week"?16:12;   // most recent N buckets
+  const keys=Object.keys(buckets).sort().slice(-take);
+  const max=Math.max(1,...keys.map(k=>buckets[k].n));
+  $(sel).innerHTML=keys.length?keys.map(k=>{
+    const b=buckets[k];
+    return `<div class="vbar-wrap"><div class="vbar" style="height:${(b.n/max*100).toFixed(1)}%"><span class="vtip">${b.label}: ${nf(b.n)} orders</span></div><span class="vlbl">${b.label}</span></div>`;
+  }).join(""):`<p style="color:var(--mute);font-size:13px;margin:auto">No data in range.</p>`;
+}
+
+/* ═══════════════════════════ TABLE ═══════════════════════════ */
+function tablePanel(){
+  const sc={closed:0,open:0,danger:0}; FILT.forEach(r=>sc[r._state]++);
+  return `
+  <div class="panel tbl-panel">
+    <div class="panel-h"><h2>Order details</h2><span class="meta">Click any row for full journey</span></div>
+    <div class="tbl-controls">
+      <div class="chips" id="stateChips">
+        <span class="chip s-closed ${tblStateFilter==='closed'?'on':''}" data-s="closed">Closed <span class="cnt">${sc.closed}</span></span>
+        <span class="chip s-open ${tblStateFilter==='open'?'on':''}" data-s="open">Open <span class="cnt">${sc.open}</span></span>
+        <span class="chip s-danger ${tblStateFilter==='danger'?'on':''}" data-s="danger">Danger <span class="cnt">${sc.danger}</span></span>
+      </div>
+      <button class="btn-dl" id="dlBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+        Export CSV
+      </button>
+    </div>
+    <div class="tbl-scroll"><table>
+      <thead><tr>
+        ${th("source","Source")}${th("orderId","Order ID")}${th("orderDate","Order date")}${th("purchaseDate","Purchase")}${th("amazonEta","Amazon EDD")}${th("latestShip","Latest ship")}
+        ${th("sku","SKU")}${th("status","Status")}${th("_tat","TAT forecast")}<th style="cursor:default">Remark (auto)</th>${th("_health","Health")}${th("_state","State")}
+      </tr></thead>
+      <tbody id="tblBody"></tbody>
+    </table></div>
+    <div class="tbl-foot"><span class="info" id="tblInfo"></span><div class="pager" id="tblPager"></div></div>
+  </div>`;
+}
+function th(key,label){
+  const ar=tblSort.key===key?(tblSort.dir>0?"▲":"▼"):"";
+  return `<th data-k="${key}">${label}<span class="ar">${ar}</span></th>`;
+}
+
+/** Resolve table rows: chip filter + sort. (Global/advanced already in FILT.) */
+function getTableRows(){
+  let rows=FILT.slice();
+  if(tblStateFilter) rows=rows.filter(r=>r._state===tblStateFilter);
+  const k=tblSort.key,dir=tblSort.dir;
+  const rank={healthy:0,delayed:1,critical:2};
+  rows.sort((a,b)=>{
+    let va,vb;
+    if(k==="orderDate"){va=a._od||0;vb=b._od||0;}
+    else if(k==="latestShip"){va=a._ship||0;vb=b._ship||0;}
+    else if(k==="purchaseDate"){va=parseDMY(a[COL.purchaseDate])||0;vb=parseDMY(b[COL.purchaseDate])||0;}
+    else if(k==="amazonEta"){va=parseDMY(a[COL.amazonEta])||0;vb=parseDMY(b[COL.amazonEta])||0;}
+    else if(k==="source"){va=(a[COL.source]||"").toLowerCase();vb=(b[COL.source]||"").toLowerCase();}
+    else if(k==="_state"){va=a._state;vb=b._state;}
+    else if(k==="_tat"){va=tatForecast(a).days;vb=tatForecast(b).days;}
+    else if(k==="_health"){va=rank[a._health.level];vb=rank[b._health.level];}
+    else{va=(a[COL[k]]||"").toLowerCase();vb=(b[COL[k]]||"").toLowerCase();}
+    return va<vb?-dir:va>vb?dir:0;
+  });
+  return rows;
+}
+
+function renderTable(){
+  const rows=getTableRows();
+  const totalPages=Math.max(1,Math.ceil(rows.length/tblPer));
+  if(tblPage>totalPages) tblPage=totalPages;
+  const start=(tblPage-1)*tblPer, pageRows=rows.slice(start,start+tblPer);
+  const stTag={closed:"s-closed-t",open:"s-open-t",danger:"s-danger-t"};
+  const stColor={closed:"var(--ok)",open:"var(--accent2)",danger:"var(--bad)"};
+  const hIcon={healthy:"✓",delayed:"⚠",critical:"🚨"};
+
+  $("#tblBody").innerHTML=pageRows.map((r,i)=>{
+    const gi=DATA.indexOf(r);
+    const src=r[COL.source]||"—";
+    const srcFlag=src==="India"?"🇮🇳":src==="US"?"🇺🇸":"";
+    const srcLbl=src==="India"?"IN":src==="US"?"US":esc(src);
+    const qc=qcReason(r);
+    return `<tr data-i="${gi}">
+      <td><span class="srcbadge"><span class="fl">${srcFlag}</span>${srcLbl}</span></td>
+      <td class="id">${hl(r[COL.orderId]||"—")}</td>
+      <td class="date">${fmtD(r._od)}</td>
+      <td class="date">${fmtD(parseDMY(r[COL.purchaseDate]))}</td>
+      <td class="date">${fmtD(parseDMY(r[COL.amazonEta]))}</td>
+      <td class="date">${fmtD(r._ship)}</td>
+      <td class="id">${hl((r[COL.sku]||"—").replace(/^USZ_/,""))}</td>
+      <td><span style="font-size:12px;color:var(--ink2)">${esc(r[COL.status]||"—")}</span>${qc?`<div style="font-size:11px;color:var(--bad);margin-top:2px">QC: ${esc(qc)}</div>`:""}</td>
+      <td>${(()=>{const f=tatForecast(r);return `<span class="tatfx ${f.level}">${f.level==="ontrack"?"✓":f.level==="none"?"":"⚠"} ${esc(f.label)}</span>`;})()}</td>
+      <td class="remark-cell">${(()=>{const rm=tatReason(r);const f=tatForecast(r);if(!rm)return `<span style="color:var(--mute)">${f.level==="ontrack"?"On track":"—"}</span>`;const tone=f.level==="delay"?"var(--bad)":f.level==="listing"?"var(--inv)":f.level==="calendar"?"var(--warn)":"var(--ink2)";return `<span title="${esc(rm)}" style="color:${tone}">${esc(rm)}</span>`;})()}</td>
+      <td><span class="health ${r._health.level}">${hIcon[r._health.level]} ${r._health.level[0].toUpperCase()+r._health.level.slice(1)}</span></td>
+      <td><span class="st-tag ${stTag[r._state]}"><span class="sw" style="background:${stColor[r._state]}"></span>${r._state[0].toUpperCase()+r._state.slice(1)}</span></td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="12"><div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg><p>No orders match your filters.</p></div></td></tr>`;
+
+  // row click → drawer
+  $("#tblBody").querySelectorAll("tr[data-i]").forEach(tr=>tr.onclick=()=>openDrawer(DATA[+tr.dataset.i]));
+
+  $("#tblInfo").textContent=rows.length?`Showing ${nf(start+1)}–${nf(Math.min(start+tblPer,rows.length))} of ${nf(rows.length)}`:"No matching orders";
+
+  // pager
+  let pg=""; const mk=(p,lbl=p,on=false,dis=false)=>`<button ${on?'class="on"':''} ${dis?'disabled':''} data-p="${p}">${lbl}</button>`;
+  pg+=mk(tblPage-1,"‹",false,tblPage<=1);
+  const win=[];
+  for(let p=1;p<=totalPages;p++){
+    if(p===1||p===totalPages||(p>=tblPage-1&&p<=tblPage+1)) win.push(p);
+    else if(win[win.length-1]!=="…") win.push("…");
+  }
+  win.forEach(p=>pg+= p==="…"?`<button disabled>…</button>`:mk(p,p,p===tblPage));
+  pg+=mk(tblPage+1,"›",false,tblPage>=totalPages);
+  $("#tblPager").innerHTML=pg;
+  $("#tblPager").querySelectorAll("button[data-p]").forEach(b=>{ if(!b.disabled) b.onclick=()=>{tblPage=+b.dataset.p;renderTable();}; });
+}
+
+/** Highlight global-search matches in a cell value. */
+function hl(text){
+  text=""+text;
+  if(!globalQuery) return esc(text);
+  const i=text.toLowerCase().indexOf(globalQuery.toLowerCase());
+  if(i<0) return esc(text);
+  return esc(text.slice(0,i))+"<mark>"+esc(text.slice(i,i+globalQuery.length))+"</mark>"+esc(text.slice(i+globalQuery.length));
+}
+
+function wireTable(){
+  $("#stateChips").querySelectorAll(".chip").forEach(c=>c.onclick=()=>{
+    tblStateFilter=tblStateFilter===c.dataset.s?"":c.dataset.s; tblPage=1; render();
+  });
+  $$("thead th[data-k]").forEach(t=>t.onclick=()=>{
+    const k=t.dataset.k;
+    if(tblSort.key===k) tblSort.dir*=-1; else {tblSort.key=k;tblSort.dir=1;}
+    renderTable();
+  });
+  $("#dlBtn").onclick=exportCSV;
+}
+
+function exportCSV(){
+  const rows=getTableRows();
+  const head=["Source","Order ID","Order Date","Purchase Date","Amazon EDD","Delivered to WH","Released for Export","Shipped to Dubai","Received in Dubai","Dispatched Last Mile","Last-mile / Delivered Date","Latest Ship Date","SKU","ASIN","Product","QTY","Sale Value (AED)","Status","QC Status","QC Failure Reason","Order State","Non Procured Reason","Health","TAT Forecast","Predicted Delay (days)","Expected Delivery","Auto Remark (why delayed)","AWB","Self Ship AWB"];
+  const lines=[head.join(",")];
+  rows.forEach(r=>{
+    const f=tatForecast(r);
+    const cells=[
+      r[COL.source], r[COL.orderId], fmtD(r._od),
+      fmtD(parseDMY(r[COL.purchaseDate])), fmtD(parseDMY(r[COL.amazonEta])),
+      fmtD(parseDMY(r[COL.deliveredDate])), fmtD(parseDMY(r[COL.releasedDate])),
+      fmtD(parseDMY(r[COL.toDubai])), fmtD(parseDMY(r[COL.recvDubai])),
+      fmtD(parseDMY(r[COL.shipDubai])), fmtD(parseDMY(r[COL.lastMileDate])),
+      fmtD(r._ship), r[COL.sku], r[COL.asin],
+      r[COL.product], r[COL.qty], saleVal(r), r[COL.status],
+      qcStatusVal(r), qcReason(r),
+      r._state, r[COL.notProcured], r._health.level,
+      f.label, f.days, r._tat?fmtD(r._tat.expectedDelivery):"",
+      tatReason(r),
+      r[COL.awb], r[COL.selfAwb]
+    ];
+    lines.push(cells.map(c=>`"${(""+(c||"")).replace(/"/g,'""')}"`).join(","));
+  });
+  const blob=new Blob(["\ufeff"+lines.join("\n")],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a");
+  const tag=sourceFilter==="all"?"all":sourceFilter.toLowerCase();
+  a.href=URL.createObjectURL(blob); a.download=`amazon_orders_${tag}_${toISO(new Date())}.csv`; a.click();
+}
+
+/* Build the TAT breakdown block for the drawer: banners (where/why + how much)
+   then an expected-vs-actual line per stage with the delay. */
+function drawerTAT(row){
+  const t=row._tat;
+  if(!t) return "";
+  const banners=t.comments.map(c=>{
+    const cls=c.type==="ok"?"ok":c.type;
+    return `<div class="tat-banner ${cls}"><strong>${esc(c.stage)}:</strong> ${esc(c.text)}</div>`;
+  }).join("");
+
+  const steps=t.stages.map(s=>{
+    let delayCls,delayTxt;
+    if(s.delay==null){ delayCls="pend"; delayTxt=s.done?"—":"Pending"; }
+    else if(s.delay>0){ delayCls="bad"; delayTxt=`+${s.delay}d`; }
+    else { delayCls="ok"; delayTxt=s.delay<0?`${s.delay}d`:"On time"; }
+    const expLine=`Exp ${fmtD(s.expFrom)} → ${fmtD(s.expTo)} · ${s.expDays}wd`;
+    const actLine=(s.actualFrom&&s.actualTo)
+      ? `Act ${fmtD(s.actualFrom)} → ${fmtD(s.actualTo)} · ${s.actualDays}wd`
+      : (s.actualTo?`Act …→ ${fmtD(s.actualTo)}`:"Act — not yet reached");
+    return `<div class="tat-step">
+      <div class="ts-l">
+        <div class="ts-name">${esc(s.label)}${s.isEDD?' <span style="color:var(--mute2);font-weight:500">(budget)</span>':''}</div>
+        <div class="ts-dates">${expLine}</div>
+        <div class="ts-dates">${actLine}</div>
+      </div>
+      <div class="ts-delay ${delayCls}">${delayTxt}</div>
+    </div>`;
+  }).join("");
+
+  const head = t.committedTAT!=null
+    ? `Listing committed <strong>${t.committedTAT}d</strong> (deliver by <strong>${fmtD(t.eDate)}</strong>). By the actual ${t.src} process — same-day purchase, Amazon EDD ${fmtD(parseDMY(row[COL.amazonEta]))||"(pending)"}, then fixed logistics — the earliest achievable delivery is <strong>${fmtD(t.expectedDelivery)}</strong>${t.listingError?` — <span style="color:var(--inv)">${t.listingGap}d later than committed</span>`:``}. Live projection from actual progress: <strong>${fmtD(t.projectedDelivery)}</strong>.`
+    : `No committed date on this order — showing the actual ${t.src} process timeline.`;
+
+  return `<div class="dr-sec">
+    <div class="dr-sec-h">TAT breakdown — expected vs actual</div>
+    <p style="font-size:12.5px;color:var(--ink2);line-height:1.5;margin-bottom:12px">${head}</p>
+    ${banners}
+    <div class="tat-steps" style="margin-top:12px">${steps}</div>
+  </div>`;
+}
+
+/* ═══════════════════════ ORDER DRAWER ═══════════════════════ */
+function openDrawer(row){
+  if(!row) return;
+  const j=computeJourney(row);
+  const h=row._health;
+  const hIcon={healthy:"✓",delayed:"⚠",critical:"🚨"};
+
+  // Build event log (newest first) from dated milestones + key events
+  const events=[];
+  const push=(date,desc,loc,type)=>{ if(date) events.push({date,desc,loc,type}); };
+  push(parseDMY(row[COL.orderDate]),"Order received","Amazon.ae","");
+  push(parseDMY(row[COL.purchaseDate]),"Purchased from Amazon.com","USA","");
+  push(parseDMY(row[COL.deliveredDate]),"Received at US warehouse","USA","");
+  push(parseDMY(row[COL.releasedDate]),"Released for export","USA","");
+  push(parseDMY(row[COL.toDubai]),"Shipped to Dubai","In transit","");
+  push(parseDMY(row[COL.recvDubai]),"Received in Dubai","Dubai hub","");
+  push(parseDMY(row[COL.shipDubai]),"Dispatched for last mile","Dubai","");
+  if((row[COL.status]||"").toLowerCase().includes("delivered to customer"))
+    push(parseDMY(row[COL.lastMileDate]),"Delivered to customer","Customer","delivered");
+  else
+    push(parseDMY(row[COL.lastMileDate]),"Out for delivery","Last mile","");
+  if((row[COL.notProcured]||"").trim()) push(parseDMY(row[COL.orderDate]),"Procurement issue: "+row[COL.notProcured],"USA","delay");
+  if(isQcFailed(row)) push(parseDMY(row[COL.deliveredDate])||parseDMY(row[COL.orderDate]),"QC failed cannot ship: "+qcReason(row),"India","delay");
+  events.sort((a,b)=>b.date-a.date);
+
+  const jIcons={cart:icCart(),card:icCard(),box:icBox(),unlock:icUnlock(),plane:icPlane(),pin:icPin(),truck:icTruck(),check:icCheck()};
+
+  $("#drawer").innerHTML=`
+    <div class="dr-head">
+      <div><h2>Amazon.ae order</h2><div class="oid">${esc(row[COL.orderId]||"—")}</div></div>
+      <button class="dr-close" id="drClose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="dr-body">
+      <div class="dr-route">
+        ${(()=>{const src=row[COL.source]==="India"?["🇮🇳","India"]:["🇺🇸","USA"];return `<span class="rr-flag">${src[0]}</span><div><div class="rr-lbl">Source</div><div class="rr-val">${src[1]}</div></div>`;})()}
+        <span class="rr-arrow">→</span>
+        <span class="rr-flag d">🇦🇪</span><div><div class="rr-lbl">Destination</div><div class="rr-val">Amazon.ae · UAE</div></div>
+      </div>
+
+      <div style="margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap">
+        <span class="health ${h.level}" style="font-size:12px;padding:6px 12px">${hIcon[h.level]} ${h.level[0].toUpperCase()+h.level.slice(1)}${h.level!=="healthy"&&h.reasons.length?" — "+esc(h.reasons[0].split(":")[0]):""}</span>
+        <span class="st-tag ${({closed:'s-closed-t',open:'s-open-t',danger:'s-danger-t'})[row._state]}" style="padding:6px 12px">${row._state[0].toUpperCase()+row._state.slice(1)}</span>
+      </div>
+
+      ${(()=>{
+        const f=tatForecast(row), t=row._tat;
+        if(!t||f.level==="none") return "";
+        if(f.level==="ontrack"){
+          return `<div class="tat-banner ok" style="margin-bottom:16px"><strong>✓ TAT on track.</strong> Expected delivery ${fmtD(t.expectedDelivery)}${t.eDate?` — within the committed ${fmtD(t.eDate)}`:""}.</div>`;
+        }
+        const cls=f.level==="delay"?"delay":f.level==="listing"?"listing":"calendar";
+        const why=t.comments.find(c=>c.type!=="ok");
+        return `<div class="tat-banner ${cls}" style="margin-bottom:16px">
+          <strong>⚠ ${esc(f.label)}.</strong> ${why?esc(why.text):""}
+          <div style="margin-top:6px;font-family:var(--mono);font-size:11px;opacity:.9">Expected delivery ${fmtD(t.expectedDelivery)}${t.eDate?` vs committed ${fmtD(t.eDate)}`:""}</div>
+        </div>`;
+      })()}
+
+      ${h.reasons.length && h.level!=="healthy" ? `<div class="dr-sec"><div style="background:var(--bad-g);border:1px solid var(--bad);border-radius:10px;padding:13px 15px;font-size:12.5px;color:var(--bad)">
+        <strong>Why flagged:</strong> ${h.reasons.map(esc).join(" · ")}</div></div>`:""}
+
+      <div class="dr-sec">
+        <div class="dr-sec-h">Order summary</div>
+        <div class="summary-grid">
+          <div class="sm-item full"><div class="sm-lbl">Product</div><div class="sm-val">${esc(row[COL.product]||"—")}</div></div>
+          <div class="sm-item"><div class="sm-lbl">SKU</div><div class="sm-val mono">${esc((row[COL.sku]||"—").replace(/^USZ_/,""))}</div></div>
+          <div class="sm-item"><div class="sm-lbl">ASIN</div><div class="sm-val mono">${esc(row[COL.asin]||"—")}</div></div>
+          <div class="sm-item"><div class="sm-lbl">Quantity</div><div class="sm-val">${esc(row[COL.qty]||"—")}</div></div>
+          <div class="sm-item"><div class="sm-lbl">Sale value</div><div class="sm-val" style="font-weight:600">${aed(saleVal(row))}</div></div>
+          <div class="sm-item"><div class="sm-lbl">Order date</div><div class="sm-val mono">${fmtD(row._od)}</div></div>
+          <div class="sm-item"><div class="sm-lbl">Purchase date</div><div class="sm-val mono">${fmtD(parseDMY(row[COL.purchaseDate]))}</div></div>
+          <div class="sm-item"><div class="sm-lbl">Amazon EDD</div><div class="sm-val mono">${fmtD(parseDMY(row[COL.amazonEta]))}</div></div>
+          <div class="sm-item"><div class="sm-lbl">Delivered to warehouse</div><div class="sm-val mono">${fmtD(parseDMY(row[COL.deliveredDate]))}</div></div>
+          <div class="sm-item"><div class="sm-lbl">Released for export</div><div class="sm-val mono">${fmtD(parseDMY(row[COL.releasedDate]))}</div></div>
+          <div class="sm-item"><div class="sm-lbl">Shipped to Dubai</div><div class="sm-val mono">${fmtD(parseDMY(row[COL.toDubai]))}</div></div>
+          <div class="sm-item"><div class="sm-lbl">Received in Dubai</div><div class="sm-val mono">${fmtD(parseDMY(row[COL.recvDubai]))}</div></div>
+          <div class="sm-item"><div class="sm-lbl">Dispatched last mile</div><div class="sm-val mono">${fmtD(parseDMY(row[COL.shipDubai]))}</div></div>
+          <div class="sm-item"><div class="sm-lbl">Last-mile / delivered</div><div class="sm-val mono">${fmtD(parseDMY(row[COL.lastMileDate]))}</div></div>
+          <div class="sm-item"><div class="sm-lbl">Latest ship date</div><div class="sm-val mono">${fmtD(row._ship)}</div></div>
+          <div class="sm-item"><div class="sm-lbl">Expected delivery (TAT)</div><div class="sm-val mono">${row._tat?fmtD(row._tat.expectedDelivery):"—"}</div></div>
+          <div class="sm-item"><div class="sm-lbl">Source</div><div class="sm-val">${esc(row[COL.source]||"—")}</div></div>
+          <div class="sm-item"><div class="sm-lbl">Current status</div><div class="sm-val">${esc(row[COL.status]||"—")}</div></div>
+          <div class="sm-item"><div class="sm-lbl">US AWB</div><div class="sm-val mono">${esc(row[COL.awb]||"—")}</div></div>
+          <div class="sm-item"><div class="sm-lbl">Last-mile AWB</div><div class="sm-val mono">${esc(row[COL.selfAwb]||"—")}</div></div>
+          <div class="sm-item"><div class="sm-lbl">Last mile status</div><div class="sm-val">${esc(row[COL.lastMile]||"—")}</div></div>
+          ${isQcFailed(row)?`<div class="sm-item full"><div class="sm-lbl">QC failure reason (cannot ship)</div><div class="sm-val" style="color:var(--bad);font-weight:600">${esc(qcReason(row))}</div></div>`:(qcStatusVal(row) && (row[COL.source]==="India")?`<div class="sm-item"><div class="sm-lbl">QC status</div><div class="sm-val">${esc(qcStatusVal(row))}</div></div>`:"")}
+          ${(row[COL.notProcured]||"").trim() && (row[COL.notProcured]||"").trim().toLowerCase()!=="delivered"?`<div class="sm-item full"><div class="sm-lbl">Non-procured reason</div><div class="sm-val" style="color:var(--warn)">${esc(row[COL.notProcured])}</div></div>`:""}
+          ${(row[COL.remark]||"").trim()?`<div class="sm-item full"><div class="sm-lbl">Remark (from sheet)</div><div class="sm-val">${esc(row[COL.remark])}</div></div>`:""}
+          ${(()=>{const rm=tatReason(row);const manual=(row[COL.remark]||"").trim();if(!rm||rm===manual)return "";const f=tatForecast(row);const tone=f.level==="delay"?"var(--bad)":f.level==="listing"?"var(--inv)":f.level==="calendar"?"var(--warn)":"var(--ink)";return `<div class="sm-item full"><div class="sm-lbl">Auto remark — why delayed</div><div class="sm-val" style="color:${tone};font-weight:500">${esc(rm)}</div></div>`;})()}
+        </div>
+      </div>
+
+      <div class="dr-sec">
+        <div class="dr-sec-h">Order journey</div>
+        <div class="journey">
+          ${j.steps.map(s=>`
+            <div class="jstep ${s.status}">
+              <div class="jline"><div class="jline-fill" style="${s.status==='done'?'':'display:none'}"></div></div>
+              <div class="jdot">${jIcons[s.icon]}</div>
+              <div class="jbody">
+                <div class="jtitle">${s.label}</div>
+                <div class="jdate">${s.date?fmtD(s.date):"Pending"}</div>
+                ${s.status==='current'?'<span class="jbadge current">In progress</span>':''}
+                ${s.status==='delayed'?'<span class="jbadge delayed">Delayed</span>':''}
+              </div>
+            </div>`).join("")}
+        </div>
+      </div>
+
+      ${drawerTAT(row)}
+
+      <div class="dr-sec">
+        <div class="dr-sec-h">Event history</div>
+        <div class="elog">
+          ${events.length?events.map(e=>`
+            <div class="elog-item">
+              <div class="elog-line"></div>
+              <div class="elog-dot ${e.type}"></div>
+              <div class="elog-body">
+                <div class="elog-date">${fmtD(e.date)}</div>
+                <div class="elog-desc">${esc(e.desc)}</div>
+                <div class="elog-loc">${esc(e.loc)}</div>
+              </div>
+            </div>`).join(""):'<p style="color:var(--mute);font-size:13px">No recorded events.</p>'}
+        </div>
+      </div>
+    </div>`;
+
+  $("#scrim").classList.add("show");
+  $("#drawer").classList.add("show");
+  $("#drawer").setAttribute("aria-hidden","false");
+  $("#drClose").onclick=closeDrawer;
+}
+function closeDrawer(){
+  $("#scrim").classList.remove("show");
+  $("#drawer").classList.remove("show");
+  $("#drawer").setAttribute("aria-hidden","true");
+}
+$("#scrim").onclick=closeDrawer;
+document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeDrawer(); });
+
+/* ═══════════════════ GLOBAL SEARCH + AUTOCOMPLETE ═══════════════════ */
+const gInput=$("#globalSearch"), acBox=$("#acBox");
+let acIndex=-1, acItems=[];
+
+const runSearch=debounce(()=>{ globalQuery=gInput.value.trim(); tblPage=1; apply(); },180);
+
+gInput.addEventListener("input",()=>{ buildAutocomplete(gInput.value.trim()); runSearch(); });
+gInput.addEventListener("focus",()=>buildAutocomplete(gInput.value.trim()));
+gInput.addEventListener("keydown",e=>{
+  if(e.key==="ArrowDown"){ e.preventDefault(); acIndex=Math.min(acIndex+1,acItems.length-1); paintAcSel(); }
+  else if(e.key==="ArrowUp"){ e.preventDefault(); acIndex=Math.max(acIndex-1,-1); paintAcSel(); }
+  else if(e.key==="Enter"){
+    if(acIndex>=0&&acItems[acIndex]) acItems[acIndex].onclick();
+    else { commitSearch(gInput.value.trim()); acBox.classList.remove("show"); }
+  }else if(e.key==="Escape"){ acBox.classList.remove("show"); gInput.blur(); }
+});
+document.addEventListener("click",e=>{ if(!$("#gsearch").contains(e.target)) acBox.classList.remove("show"); });
+
+/** Build autocomplete: matching orders + recent searches. */
+function buildAutocomplete(q){
+  acIndex=-1; acItems=[];
+  let html="";
+
+  if(q.length>=2){
+    const ql=q.toLowerCase();
+    const matches=[];
+    for(let i=0;i<DATA.length && matches.length<6;i++){ if(haystack(DATA[i]).includes(ql)) matches.push(DATA[i]); }
+    if(matches.length){
+      html+=`<div class="ac-sec"><div class="ac-head">Orders</div>`+
+        matches.map(r=>{
+          const sku=(r[COL.sku]||"").replace(/^USZ_/,"");
+          return `<div class="ac-item" data-id="${esc(r[COL.orderId])}">
+            <div class="ac-ic">${icBox()}</div>
+            <div class="ac-body"><div class="ac-title">${acHl(r[COL.orderId],q)}</div>
+            <div class="ac-sub">${acHl(sku,q)} · ${esc((r[COL.product]||"").slice(0,42))}</div></div>
+            <span class="ac-tag ${r._state}">${r._state}</span></div>`;
+        }).join("")+`</div>`;
+    }else{
+      html+=`<div class="ac-sec"><div class="ac-item" style="cursor:default"><div class="ac-body"><div class="ac-sub">No matches for "${esc(q)}"</div></div></div></div>`;
+    }
+  }
+
+  if(recentSearches.length && q.length<2){
+    html+=`<div class="ac-sec"><div class="ac-head">Recent searches<button id="clrRecent">Clear</button></div>`+
+      recentSearches.map(s=>`<div class="ac-item" data-recent="${esc(s)}">
+        <div class="ac-ic recent">${icClock()}</div><div class="ac-body"><div class="ac-title">${esc(s)}</div></div></div>`).join("")+`</div>`;
+  }
+
+  if(!html){ acBox.classList.remove("show"); return; }
+  acBox.innerHTML=html; acBox.classList.add("show");
+
+  // wire items
+  acBox.querySelectorAll(".ac-item[data-id]").forEach(el=>{
+    const item={onclick:()=>{ const o=DATA.find(r=>r[COL.orderId]===el.dataset.id); commitSearch(el.dataset.id); acBox.classList.remove("show"); if(o) openDrawer(o); }};
+    el.onclick=item.onclick; acItems.push(item);
+  });
+  acBox.querySelectorAll(".ac-item[data-recent]").forEach(el=>{
+    const item={onclick:()=>{ gInput.value=el.dataset.recent; commitSearch(el.dataset.recent); acBox.classList.remove("show"); }};
+    el.onclick=item.onclick; acItems.push(item);
+  });
+  const clr=$("#clrRecent"); if(clr) clr.onclick=e=>{ e.stopPropagation(); recentSearches=[]; saveRecent(); buildAutocomplete(gInput.value.trim()); };
+}
+function acHl(text,q){
+  text=""+(text||""); const i=text.toLowerCase().indexOf(q.toLowerCase());
+  if(i<0) return esc(text);
+  return esc(text.slice(0,i))+"<mark>"+esc(text.slice(i,i+q.length))+"</mark>"+esc(text.slice(i+q.length));
+}
+function paintAcSel(){ acBox.querySelectorAll(".ac-item").forEach((el,i)=>el.classList.toggle("sel",i===acIndex)); }
+
+function commitSearch(q){
+  gInput.value=q; globalQuery=q;
+  if(q && q.length>=2){ recentSearches=[q,...recentSearches.filter(s=>s!==q)].slice(0,6); saveRecent(); }
+  tblPage=1; apply();
+}
+
+/* recent searches persistence (in-memory + best-effort) */
+function loadRecent(){ try{ return JSON.parse(window._recent||"[]"); }catch(e){ return []; } }
+function saveRecent(){ window._recent=JSON.stringify(recentSearches); }
+
+/* keyboard: "/" focuses search */
+document.addEventListener("keydown",e=>{
+  if(e.key==="/" && document.activeElement!==gInput && !/INPUT|TEXTAREA/.test(document.activeElement.tagName)){
+    e.preventDefault(); gInput.focus();
+  }
+});
+
+/* ═══════════════════════════ THEME ═══════════════════════════ */
+function setTheme(light){
+  document.body.classList.toggle("light",light);
+  $("#themeIcon").innerHTML=light
+    ? '<circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>'
+    : '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+  try{ window._theme=light?"light":"dark"; }catch(e){}
+}
+let isLight=(()=>{ try{ return window._theme==="light"; }catch(e){ return false; } })();
+setTheme(isLight);
+$("#themeBtn").onclick=()=>{ isLight=!isLight; setTheme(isLight); };
+$("#refreshBtn").onclick=()=>{ $("#refreshBtn").style.transform="rotate(360deg)"; setTimeout(()=>$("#refreshBtn").style.transform="",400); load(); };
+
+/* ═══════════════════════════ ICONS ═══════════════════════════ */
+function icBox(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg>';}
+function icCheck(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>';}
+function icClock(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>';}
+function icAlert(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4M12 17h.01"/></svg>';}
+function icBan(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M4.93 4.93l14.14 14.14"/></svg>';}
+function icX(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>';}
+function icCart(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>';}
+function icCard(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg>';}
+function icUnlock(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>';}
+function icPlane(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>';}
+function icPin(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>';}
+function icTruck(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>';}
+
+/* ═══════════════════════════ BOOT ═══════════════════════════ */
+load();
+setInterval(load,5*60*1000);   // auto-refresh every 5 min
+
+</script>
+</body>
+</html>
